@@ -2,6 +2,7 @@ import typing
 from collections import defaultdict
 from typing import List, Dict, Set, Tuple
 import os
+import json
 
 import mobase
 
@@ -38,6 +39,7 @@ class PrepareMergeTableModel(QtCore.QAbstractTableModel):
 
     def init_data(self, data):
         self._data = data
+        self.layoutChanged.emit()
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = ...) -> typing.Any:
         if role == Qt.DisplayRole:
@@ -54,6 +56,69 @@ class PrepareMergeTableModel(QtCore.QAbstractTableModel):
 
     def rowCount(self, parent: QModelIndex = ...) -> int:
         return len(self._data)
+
+    def removeRows(self, row: int, count: int, parent: QModelIndex = ...) -> bool:
+        qDebug("Removes!!!!")
+
+        if 0 <= row <= len(self._data) - count:
+            del self._data[row:row + count]
+            self.layoutChanged.emit()
+            return True
+
+        return False
+
+    def supportedDropActions(self) -> Qt.DropActions:
+        return Qt.MoveAction
+
+    def flags(self, index: QModelIndex) -> Qt.ItemFlags:
+        default_flags = super().flags(index)
+
+        if index.isValid():
+            return default_flags | Qt.ItemIsDragEnabled
+        else:
+            return default_flags | Qt.ItemIsDropEnabled
+
+    def mimeData(self, indexes: typing.Iterable[QModelIndex]) -> QtCore.QMimeData:
+        mime_data = QtCore.QMimeData()
+        data = []
+        for i in indexes:
+            if i.column() == 0:
+                data.append(self._data[i.row()])
+        data_json = json.dumps(data)
+        mime_data.setData("application/json", data_json.encode())
+        return mime_data
+
+    def mimeTypes(self) -> typing.List[str]:
+        return ["application/json"]
+
+    def dropMimeData(self, data: QtCore.QMimeData, action: Qt.DropAction, row: int, column: int,
+                     parent: QModelIndex) -> bool:
+        if action == Qt.IgnoreAction:
+            return True
+
+        if not data.hasFormat("application/json"):
+            return False
+
+        if column > 0:
+            return False
+
+        if row != -1:
+            begin_row = row
+        elif parent.isValid():
+            begin_row = parent.row()
+        else:
+            begin_row = len(self._data)
+
+        data_json = data.data("application/json").data().decode()
+        new_data = json.loads(data_json)
+
+        for d in new_data:
+            self._data.insert(begin_row, d)
+            begin_row += 1
+
+        self.layoutChanged.emit()
+
+        return True
 
 
 class PrepareMergeWindow(QtWidgets.QDialog):
@@ -101,21 +166,19 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         right_width = split_width - left_width
         horizontal_split.setSizes((left_width, right_width))
 
-        # Build lookup dictionary of all profiles
-        # self.__profileInfo = self.getProfileInfo()
-
-        # Build lookup dictionary of mods in current profile
-        # self.__modListInfo = self.getModListInfoByPath(
-        #    os.path.join(self.__organizer.profilePath(), "modlist.txt")
-        # )
+        self.update_table_view()
 
     def create_list_widget(self):
         selected_plugins = QtWidgets.QListView()
         selected_plugins.setModel(self._list_model)
-        selected_plugins.setModelColumn(3)
+        selected_plugins.setModelColumn(1)
 
-        selected_plugins.setDragDropMode(QtWidgets.QAbstractItemView.DragDrop)
+        selected_plugins.setDragEnabled(True)
+        # selected_plugins.setDragDropMode(QtWidgets.QAbstractItemView.DragDrop)
         selected_plugins.setAcceptDrops(True)
+        selected_plugins.setDropIndicatorShown(True)
+        # selected_plugins.setDefaultDropAction(QtCore.Qt.MoveAction)
+        selected_plugins.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
 
         return selected_plugins
 
@@ -138,7 +201,13 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         table.setAlternatingRowColors(True)
         table.setShowGrid(False)
         table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
-        table.setDragDropMode(QtWidgets.QAbstractItemView.DragOnly)
+
+        table.setDragEnabled(True)
+        # table.setDragDropMode(QtWidgets.QAbstractItemView.DragDrop)
+        # table.setDefaultDropAction(QtCore.Qt.MoveAction)
+        table.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
+        table.setDropIndicatorShown(True)
+        table.setAcceptDrops(True)
 
         # table.setContextMenuPolicy(Qt.CustomContextMenu)
         # table.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
@@ -153,7 +222,11 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         select_button.clicked.connect(self.select_current_profile)
         button_layout.addWidget(select_button)
 
-        close_button = QtWidgets.QPushButton(self.__tr("&Close"), self)
+        merge_button = QtWidgets.QPushButton(self.__tr("&Prepare merge in active profile"), self)
+        merge_button.clicked.connect(self.activate_plugins)
+        button_layout.addWidget(merge_button)
+
+        close_button = QtWidgets.QPushButton(self.__tr("&Close window"), self)
         close_button.clicked.connect(self.close)
         button_layout.addWidget(close_button)
 
@@ -161,15 +234,16 @@ class PrepareMergeWindow(QtWidgets.QDialog):
 
     def update_table_view(self):
         self._table_model.init_data(self._settings.plugin_mapping)
-        self._table_model.layoutChanged.emit()
+        self._list_model.init_data([])
 
         self._table_widget.sortByColumn(0, Qt.AscendingOrder)
         self._table_widget.resizeColumnToContents(1)
         self._table_widget.resizeColumnToContents(3)
 
     def select_current_profile(self):
-        self._settings.selected_main_profile = self.__organizer.profile()
-        self._settings.plugin_mapping = self.create_plugin_mapping()
+        self._settings.selected_main_profile = self.__organizer.profile().name()
+        self._settings.plugin_mapping.clear()
+        self._settings.plugin_mapping.extend(self.create_plugin_mapping())
         self.update_table_view()
 
     def create_plugin_mapping(self):
@@ -186,82 +260,21 @@ class PrepareMergeWindow(QtWidgets.QDialog):
 
         return data
 
-
-class PrepareMerge(mobase.IPluginTool):
-    NAME = "Prepare Merge"
-    DESCRIPTION = "TODO"
-
-    __organizer: mobase.IOrganizer
-    _settings: PrepareMergeSettings
-
-    def __tr(self, txt: str):
-        return QApplication.translate("PrepareMerge", txt)
-
-    def __init__(self):
-        super().__init__()
-        self.__window = None
-        self.__organizer = None
-        self.__parentWidget = None
-        self._settings = PrepareMergeSettings()
-
-    def init(self, organizer: mobase.IOrganizer):
-        self.__organizer = organizer
-        return True
-
-    def display(self):
-        self.__window = PrepareMergeWindow(self.__organizer, self._settings)
-        self.__window.setWindowTitle(self.NAME)
-        self.__window.exec_()
-
-        # Refresh Mod Organizer mod list to reflect changes
-        # current_profile = None
-
+    def activate_plugins(self):
         modlist = self.__organizer.modList()
         pluginlist = self.__organizer.pluginList()
-        # mods = [
-        #    modlist.getMod(m) for m in modlist.allModsByProfilePriority(current_profile)
-        # ]
-        # mods = [m for m in mods if not m.isSeparator() and not m.isForeign()]
 
-        # modlist.allModsByProfilePriority()
+        plugins = [self._list_model.data(self._list_model.index(i, 1), Qt.DisplayRole)
+                   for i in range(self._list_model.rowCount())]
+        plugin_to_mod = dict()
 
-        # plugin_to_mod = dict()
-        # for plugin in pluginlist.pluginNames():
-        #    mod = pluginlist.origin(plugin)
-        #    plugin_to_mod[plugin] = mod
-
-        # qDebug(str(plugin_to_mod))
-        plugin_to_mod = {
-            'Andromeda - Unique Standing Stones of Skyrim.esp': 'Andromeda - Unique Standing Stones of Skyrim',
-            'Apocalypse - Magic of Skyrim.esp': 'Apocalypse - Magic of Skyrim',
-            'Complete Crafting Overhaul_Remastered.esp': 'Complete Crafting Overhaul Remastered',
-            'Dawnguard.esm': 'DLC: Dawnguard', 'Dragonborn.esm': 'DLC: Dragonborn',
-            'HearthFires.esm': 'DLC: HearthFires', 'Skyrim.esm': 'data',
-            'SL01AmuletsSkyrim.esp': 'Amulets of Skyrim SSE',
-            'SL01AmuletsSkyrim_CCOR_Patch.esp': 'Amulets of Skyrim __ CCOR',
-            'Unofficial Skyrim Special Edition Patch.esp': 'Unofficial Skyrim Special Edition Patch',
-            'Update.esm': 'data',
-            'Weapons Armor Clothing & Clutter Fixes.esp': 'Weapons Armor Clothing and Clutter Fixes'}
-
-        # raise PrepareMergeException("Error")
-        main_profile = self.__organizer.profile()
-        plugins = ["SL01AmuletsSkyrim_CCOR_Patch.esp", "Apocalypse - Magic of Skyrim.esp"]
-
-        # def find_by_plugin(plugin: str) -> str:
-        #    origins = self.__organizer.getFileOrigins(plugin)
-        #    if len(origins) > 1:
-        #        qWarning(f"{self.name()} - Found more than one copy of the plugin: {plugin}")
-        #    elif len(origins) == 0:
-        #        raise PrepareMergeException(f"Plugin does not exist: {plugin}")
-        #
-        #    return origins[0]  # Return mod with highest priority
-
-        # mods: List[str] = [find_by_plugin(p) for p in plugins]
-        mods = [plugin_to_mod[p] for p in plugins]
+        for _, p, _, m in self._settings.plugin_mapping:
+            plugin_to_mod[p] = m
 
         # Disable all mods
         modlist.setActive(modlist.allMods(), active=False)
 
+        mods = [plugin_to_mod[p] for p in plugins]
         # Enable mods with selected plugins
         modlist.setActive(mods, active=True)
 
@@ -307,6 +320,33 @@ class PrepareMerge(mobase.IPluginTool):
         max_priority = len(pluginlist.pluginNames()) - 1
         for p in plugins:
             pluginlist.setPriority(p, max_priority)
+
+
+class PrepareMerge(mobase.IPluginTool):
+    NAME = "Prepare Merge"
+    DESCRIPTION = "TODO"
+
+    __organizer: mobase.IOrganizer
+    _settings: PrepareMergeSettings
+
+    def __tr(self, txt: str):
+        return QApplication.translate("PrepareMerge", txt)
+
+    def __init__(self):
+        super().__init__()
+        self.__window = None
+        self.__organizer = None
+        self.__parentWidget = None
+        self._settings = PrepareMergeSettings()
+
+    def init(self, organizer: mobase.IOrganizer):
+        self.__organizer = organizer
+        return True
+
+    def display(self):
+        self.__window = PrepareMergeWindow(self.__organizer, self._settings)
+        self.__window.setWindowTitle(self.NAME)
+        self.__window.exec_()
 
     def displayName(self):
         return self.__tr(self.NAME)
