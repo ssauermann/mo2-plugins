@@ -136,13 +136,9 @@ class PrepareMergeWindow(QtWidgets.QDialog):
 
         self._table_model_proxy = QtCore.QSortFilterProxyModel()
         self._table_model_proxy.setSourceModel(self._table_model)
+        self._table_model_proxy.setFilterKeyColumn(1)
 
-        # self._table_model_proxy.setFilterKeyColumn(3)
-        # self._table_model_proxy.setFilterFixedString("dog")
-        # self._table_model_proxy.setFilterWildcard("do")
-        # self._table_model_proxy.setFilterRegExp(QRegExp("do.*"))
-
-        self.resize(800, 500)
+        self.resize(1280, 720)
         self.setWindowIcon(QtGui.QIcon())
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
 
@@ -151,8 +147,43 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         horizontal_split = QtWidgets.QSplitter()
 
         self._table_widget = self.create_table_widget()
-        horizontal_split.addWidget(self._table_widget)
-        horizontal_split.addWidget(self.create_list_widget())
+
+        active_profile_layout = QtWidgets.QHBoxLayout()
+        active_profile_label = QtWidgets.QLabel()
+        active_profile_label.setText("Base profile")
+        self._active_profile = QtWidgets.QLineEdit()
+        self._active_profile.setReadOnly(True)
+        self._active_profile.setFrame(False)
+        self._active_profile.setPlaceholderText("No base profile selected")
+        self._active_profile.setText(self._settings.selected_main_profile)
+        active_profile_label.setFixedHeight(20)  # same height as _active_profile
+        active_profile_layout.addWidget(active_profile_label)
+        active_profile_layout.addWidget(self._active_profile)
+
+        filter_box = QtWidgets.QLineEdit()
+        filter_box.setClearButtonEnabled(True)
+        filter_box.setPlaceholderText("Filter")
+        filter_box.textChanged.connect(lambda: self._table_model_proxy.setFilterWildcard(filter_box.text()))
+
+        wrapper_left = QtWidgets.QWidget()
+        layout_left = QtWidgets.QVBoxLayout()
+        layout_left.addLayout(active_profile_layout)
+        layout_left.addWidget(self._table_widget)
+        layout_left.addWidget(filter_box)
+        wrapper_left.setLayout(layout_left)
+
+        selected_plugins_label = QtWidgets.QLabel()
+        selected_plugins_label.setText("Plugins selected for merge")
+
+        wrapper_right = QtWidgets.QWidget()
+        layout_right = QtWidgets.QVBoxLayout()
+        layout_right.addWidget(selected_plugins_label)
+        layout_right.addWidget(self.create_list_widget())
+        wrapper_right.setLayout(layout_right)
+        selected_plugins_label.setFixedHeight(20) # same height as _active_profile
+
+        horizontal_split.addWidget(wrapper_left)
+        horizontal_split.addWidget(wrapper_right)
 
         vertical_layout.addWidget(horizontal_split)
         vertical_layout.addLayout(self.create_button_layout())
@@ -205,9 +236,9 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         table.setDragEnabled(True)
         # table.setDragDropMode(QtWidgets.QAbstractItemView.DragDrop)
         # table.setDefaultDropAction(QtCore.Qt.MoveAction)
-        table.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
-        table.setDropIndicatorShown(True)
-        table.setAcceptDrops(True)
+        table.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+        # table.setDropIndicatorShown(True)
+        # table.setAcceptDrops(True)
 
         # table.setContextMenuPolicy(Qt.CustomContextMenu)
         # table.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
@@ -218,12 +249,12 @@ class PrepareMergeWindow(QtWidgets.QDialog):
     def create_button_layout(self):
         button_layout = QtWidgets.QHBoxLayout()
 
-        select_button = QtWidgets.QPushButton(self.__tr("&Select active profile as base"), self)
+        select_button = QtWidgets.QPushButton(self.__tr("&Load active profile as base"), self)
         select_button.clicked.connect(self.select_current_profile)
         button_layout.addWidget(select_button)
 
         merge_button = QtWidgets.QPushButton(self.__tr("&Prepare merge in active profile"), self)
-        merge_button.clicked.connect(self.activate_plugins)
+        merge_button.clicked.connect(self.show_activate_plugins)
         button_layout.addWidget(merge_button)
 
         close_button = QtWidgets.QPushButton(self.__tr("&Close window"), self)
@@ -244,6 +275,7 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         self._settings.selected_main_profile = self.__organizer.profile().name()
         self._settings.plugin_mapping.clear()
         self._settings.plugin_mapping.extend(self.create_plugin_mapping())
+        self._active_profile.setText(self._settings.selected_main_profile)
         self.update_table_view()
 
     def create_plugin_mapping(self):
@@ -259,6 +291,16 @@ class PrepareMergeWindow(QtWidgets.QDialog):
             data.append((priority, plugin, priority_mod, mod))
 
         return data
+
+    def show_activate_plugins(self):
+        confirmation_box = QtWidgets.QMessageBox()
+        confirmation_box.setWindowTitle("Prepare Merge")
+        confirmation_box.setText("Are you sure you want to continue?")
+        confirmation_box.setInformativeText("Continuing will disable all mods in the current profile and load only the mods containing the selected plugins and their masters.")
+        confirmation_box.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+        value = confirmation_box.exec_()
+        if value == QtWidgets.QMessageBox.Yes:
+            self.activate_plugins()
 
     def activate_plugins(self):
         modlist = self.__organizer.modList()
