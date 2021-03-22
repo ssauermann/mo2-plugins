@@ -1,4 +1,6 @@
-from typing import List
+import typing
+from collections import defaultdict
+from typing import List, Dict, Set, Tuple
 import os
 
 import mobase
@@ -10,7 +12,7 @@ import PyQt5.QtCore as QtCore
 
 from PyQt5.QtWidgets import QApplication
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QModelIndex
 
 from PyQt5.QtCore import qDebug, qCritical, qWarning, qInfo
 
@@ -21,57 +23,83 @@ class PrepareMergeException(Exception):
     pass
 
 
+class PrepareMergeSettings:
+    plugin_mapping: List[Tuple[int, str, int, str]] = []
+    selected_main_profile: str = ""
+
+
+class PrepareMergeTableModel(QtCore.QAbstractTableModel):
+    _data: List[Tuple[int, str, int, str]] = []
+    _header = ("Priority\n(Plugin)", "Plugin Name", "Priority\n(Mod)", "Mod Name")
+    _alignments = (Qt.AlignCenter, Qt.AlignLeft, Qt.AlignCenter, Qt.AlignLeft)
+
+    def __init__(self):
+        super().__init__()
+
+    def init_data(self, data):
+        self._data = data
+
+    def headerData(self, section: int, orientation: Qt.Orientation, role: int = ...) -> typing.Any:
+        if role == Qt.DisplayRole:
+            return self._header[section]
+
+    def data(self, index: QModelIndex, role: int = ...) -> typing.Any:
+        if role == Qt.DisplayRole:
+            return self._data[index.row()][index.column()]
+        elif role == Qt.TextAlignmentRole:
+            return self._alignments[index.column()]
+
+    def columnCount(self, parent: QModelIndex = ...) -> int:
+        return 4
+
+    def rowCount(self, parent: QModelIndex = ...) -> int:
+        return len(self._data)
+
+
 class PrepareMergeWindow(QtWidgets.QDialog):
     def __tr(self, name: str):
         return QApplication.translate("PrepareMergeWindow", name)
 
-    def __init__(self, organizer, parent=None):
-        self.__modListInfo = {}
-        self.__profilesInfo = {}
+    def __init__(self, organizer: mobase.IOrganizer, settings: PrepareMergeSettings, parent=None):
         self.__organizer = organizer
+        self._settings = settings
 
         super().__init__(parent)
 
-        self.resize(500, 500)
-        self.setWindowIcon(QtGui.QIcon())  # TODO: Add icon
+        self._table_model = PrepareMergeTableModel()
+        self._list_model = PrepareMergeTableModel()
+
+        self._table_model_proxy = QtCore.QSortFilterProxyModel()
+        self._table_model_proxy.setSourceModel(self._table_model)
+
+        # self._table_model_proxy.setFilterKeyColumn(3)
+        # self._table_model_proxy.setFilterFixedString("dog")
+        # self._table_model_proxy.setFilterWildcard("do")
+        # self._table_model_proxy.setFilterRegExp(QRegExp("do.*"))
+
+        self.resize(800, 500)
+        self.setWindowIcon(QtGui.QIcon())
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
 
         # Vertical Layout
-        verticalLayout = QtWidgets.QVBoxLayout()
+        vertical_layout = QtWidgets.QVBoxLayout()
+        horizontal_split = QtWidgets.QSplitter()
 
-        # Vertical Layout -> Merged Mod List (TODO: Better to use QTreeView and model?)
-        self.profileList = QtWidgets.QTreeWidget()
+        self._table_widget = self.create_table_widget()
+        horizontal_split.addWidget(self._table_widget)
+        horizontal_split.addWidget(self.create_list_widget())
 
-        self.profileList.setColumnCount(1)
-        self.profileList.setRootIsDecorated(False)
-
-        self.profileList.header().setVisible(True)
-        self.profileList.headerItem().setText(0, self.__tr("Profile name"))
-
-        # self.profileList.setContextMenuPolicy(Qt.CustomContextMenu)
-        # self.profileList.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        # self.profileList.customContextMenuRequested.connect(self.openProfileMenu)
-
-        # verticalLayout.addWidget(self.profileList)
-
-        # Vertical Layout -> Button Layout
-        # buttonLayout = QtWidgets.QHBoxLayout()
-
-        # Vertical Layout -> Button Layout -> Refresh Button
-        # refreshButton = QtWidgets.QPushButton(self.__tr("&Refresh"), self)
-        # refreshButton.setIcon(QtGui.QIcon(":/MO/gui/refresh"))
-        # refreshButton.clicked.connect(self.refreshProfileList)
-        # buttonLayout.addWidget(refreshButton)
-
-        # Vertical Layout -> Button Layout -> Close Button
-        # closeButton = QtWidgets.QPushButton(self.__tr("&Close"), self)
-        # closeButton.clicked.connect(self.close)
-        # buttonLayout.addWidget(closeButton)
-
-        # verticalLayout.addLayout(buttonLayout)
+        vertical_layout.addWidget(horizontal_split)
+        vertical_layout.addLayout(self.create_button_layout())
 
         # Vertical Layout
-        # self.setLayout(verticalLayout)
+        self.setLayout(vertical_layout)
+
+        # Resize splitter to 2:1 ratio
+        split_width = horizontal_split.width()
+        left_width = int(2 * split_width / 3)
+        right_width = split_width - left_width
+        horizontal_split.setSizes((left_width, right_width))
 
         # Build lookup dictionary of all profiles
         # self.__profileInfo = self.getProfileInfo()
@@ -81,12 +109,90 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         #    os.path.join(self.__organizer.profilePath(), "modlist.txt")
         # )
 
+    def create_list_widget(self):
+        selected_plugins = QtWidgets.QListView()
+        selected_plugins.setModel(self._list_model)
+        selected_plugins.setModelColumn(3)
+
+        selected_plugins.setDragDropMode(QtWidgets.QAbstractItemView.DragDrop)
+        selected_plugins.setAcceptDrops(True)
+
+        return selected_plugins
+
+    def create_table_widget(self):
+        # Vertical Layout -> Reference Plugin List
+        table = QtWidgets.QTableView()
+        table.setModel(self._table_model_proxy)
+
+        # self.profileList.setColumnCount(4)
+        table.verticalHeader().setVisible(False)
+        table.setSortingEnabled(True)
+        table_header = table.horizontalHeader()
+        table_header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)  # Priority plugin
+        # table_header.setSectionResizeMode(1, QtWidgets.QHeaderView.Interactive) # Plugin name
+        table_header.setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeToContents)  # Priority mod
+        # table_header.setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)  # Mod name
+        table_header.setCascadingSectionResizes(True)
+        table_header.setStretchLastSection(True)
+
+        table.setAlternatingRowColors(True)
+        table.setShowGrid(False)
+        table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        table.setDragDropMode(QtWidgets.QAbstractItemView.DragOnly)
+
+        # table.setContextMenuPolicy(Qt.CustomContextMenu)
+        # table.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        # table.customContextMenuRequested.connect(self.openProfileMenu)
+
+        return table
+
+    def create_button_layout(self):
+        button_layout = QtWidgets.QHBoxLayout()
+
+        select_button = QtWidgets.QPushButton(self.__tr("&Select active profile as base"), self)
+        select_button.clicked.connect(self.select_current_profile)
+        button_layout.addWidget(select_button)
+
+        close_button = QtWidgets.QPushButton(self.__tr("&Close"), self)
+        close_button.clicked.connect(self.close)
+        button_layout.addWidget(close_button)
+
+        return button_layout
+
+    def update_table_view(self):
+        self._table_model.init_data(self._settings.plugin_mapping)
+        self._table_model.layoutChanged.emit()
+
+        self._table_widget.sortByColumn(0, Qt.AscendingOrder)
+        self._table_widget.resizeColumnToContents(1)
+        self._table_widget.resizeColumnToContents(3)
+
+    def select_current_profile(self):
+        self._settings.selected_main_profile = self.__organizer.profile()
+        self._settings.plugin_mapping = self.create_plugin_mapping()
+        self.update_table_view()
+
+    def create_plugin_mapping(self):
+        pluginlist = self.__organizer.pluginList()
+        modlist = self.__organizer.modList()
+
+        data: List[Tuple[int, str, int, str]] = []
+
+        for plugin in pluginlist.pluginNames():
+            mod = pluginlist.origin(plugin)
+            priority = pluginlist.priority(plugin)
+            priority_mod = modlist.priority(mod)
+            data.append((priority, plugin, priority_mod, mod))
+
+        return data
+
 
 class PrepareMerge(mobase.IPluginTool):
     NAME = "Prepare Merge"
     DESCRIPTION = "TODO"
 
     __organizer: mobase.IOrganizer
+    _settings: PrepareMergeSettings
 
     def __tr(self, txt: str):
         return QApplication.translate("PrepareMerge", txt)
@@ -96,24 +202,28 @@ class PrepareMerge(mobase.IPluginTool):
         self.__window = None
         self.__organizer = None
         self.__parentWidget = None
+        self._settings = PrepareMergeSettings()
 
     def init(self, organizer: mobase.IOrganizer):
         self.__organizer = organizer
         return True
 
     def display(self):
-        # self.__window = PrepareMergeWindow(self.__organizer)
-        # self.__window.setWindowTitle(self.NAME)
-        # self.__window.exec_()
+        self.__window = PrepareMergeWindow(self.__organizer, self._settings)
+        self.__window.setWindowTitle(self.NAME)
+        self.__window.exec_()
 
         # Refresh Mod Organizer mod list to reflect changes
         # current_profile = None
+
         modlist = self.__organizer.modList()
         pluginlist = self.__organizer.pluginList()
         # mods = [
         #    modlist.getMod(m) for m in modlist.allModsByProfilePriority(current_profile)
         # ]
         # mods = [m for m in mods if not m.isSeparator() and not m.isForeign()]
+
+        # modlist.allModsByProfilePriority()
 
         # plugin_to_mod = dict()
         # for plugin in pluginlist.pluginNames():
