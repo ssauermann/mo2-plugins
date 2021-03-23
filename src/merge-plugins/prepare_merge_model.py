@@ -3,13 +3,13 @@ from typing import List, Dict, Set, Tuple
 import json
 
 import PyQt5.QtCore as QtCore
-from PyQt5.QtCore import Qt, QModelIndex
+from PyQt5.QtCore import Qt, QModelIndex, qDebug
 
 
 class PrepareMergeTableModel(QtCore.QAbstractTableModel):
     _data: List[Tuple[int, str, int, str]] = []
     _header = ("Priority\n(Plugin)", "Plugin Name", "Priority\n(Mod)", "Mod Name")
-    _alignments = (Qt.AlignCenter, Qt.AlignLeft, Qt.AlignCenter, Qt.AlignLeft)
+    _alignments = (Qt.AlignCenter, Qt.AlignLeft | Qt.AlignVCenter, Qt.AlignCenter, Qt.AlignLeft | Qt.AlignVCenter)
 
     def __init__(self):
         super().__init__()
@@ -27,6 +27,37 @@ class PrepareMergeTableModel(QtCore.QAbstractTableModel):
             return self._data[index.row()][index.column()]
         elif role == Qt.TextAlignmentRole:
             return self._alignments[index.column()]
+        elif role == Qt.ToolTipRole:
+            return f"{self._data[index.row()][3]}"
+
+    def moveRows(self, sourceParent: QModelIndex, sourceRow: int, count: int, destinationParent: QModelIndex,
+                 destinationChild: int) -> bool:
+        first = sourceRow
+        last = sourceRow + count - 1
+        target = destinationChild
+
+        # Already in place, calling beginMoveRows results in crash if we don't handle this case
+        if target - count == first:
+            return True
+
+        self.beginMoveRows(sourceParent, first, last, destinationParent, destinationChild)
+
+        # Moving elements downwards and upwards needs a different offset
+        offset = 1 if target > first else 0
+
+        # Remove elements from start index
+        tmp = []
+        for _ in range(count):
+            tmp.append(self._data.pop(sourceRow))
+
+        # Reverse order because we are inserting before index each time
+        tmp.reverse()
+        for item in tmp:
+            self._data.insert(target - offset, item)
+
+        self.endMoveRows()
+
+        return True
 
     def columnCount(self, parent: QModelIndex = ...) -> int:
         return 4
@@ -66,7 +97,7 @@ class PrepareMergeTableModel(QtCore.QAbstractTableModel):
         if not data.hasFormat("application/json"):
             return False
 
-        if column > 0:
+        if column > 0:  # Always move whole rows
             return False
 
         if row != -1:
