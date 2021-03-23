@@ -21,7 +21,7 @@ class PrepareMergeSettings:
 
 class PrepareMergeWindow(QtWidgets.QDialog):
     def __tr(self, name: str):
-        return QApplication.translate("PrepareMergeWindow", name)
+        return QApplication.translate("PrepareMerge", name)
 
     def __init__(
         self, organizer: mobase.IOrganizer, settings: PrepareMergeSettings, parent=None
@@ -52,11 +52,11 @@ class PrepareMergeWindow(QtWidgets.QDialog):
 
         active_profile_layout = QtWidgets.QHBoxLayout()
         active_profile_label = QtWidgets.QLabel()
-        active_profile_label.setText("Base profile")
+        active_profile_label.setText(self.__tr("Base profile"))
         self._active_profile = QtWidgets.QLineEdit()
         self._active_profile.setReadOnly(True)
         self._active_profile.setFrame(False)
-        self._active_profile.setPlaceholderText("No base profile selected")
+        self._active_profile.setPlaceholderText(self.__tr("No base profile selected"))
         self._active_profile.setText(self._settings.selected_main_profile)
         active_profile_label.setFixedHeight(20)  # same height as _active_profile
         active_profile_layout.addWidget(active_profile_label)
@@ -64,7 +64,7 @@ class PrepareMergeWindow(QtWidgets.QDialog):
 
         filter_box = QtWidgets.QLineEdit()
         filter_box.setClearButtonEnabled(True)
-        filter_box.setPlaceholderText("Filter")
+        filter_box.setPlaceholderText(self.__tr("Filter"))
         filter_box.textChanged.connect(
             lambda: self._table_model_proxy.setFilterWildcard(filter_box.text())
         )
@@ -77,7 +77,9 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         wrapper_left.setLayout(layout_left)
 
         selected_plugins_label = QtWidgets.QLabel()
-        selected_plugins_label.setText("Drag and drop the plugins to merge here:")
+        selected_plugins_label.setText(
+            self.__tr("Drag and drop the plugins to merge here:")
+        )
 
         wrapper_right = QtWidgets.QWidget()
         layout_right = QtWidgets.QVBoxLayout()
@@ -186,10 +188,12 @@ class PrepareMergeWindow(QtWidgets.QDialog):
 
     def show_activate_plugins(self):
         confirmation_box = QtWidgets.QMessageBox()
-        confirmation_box.setWindowTitle("Prepare Merge")
-        confirmation_box.setText("Are you sure you want to continue?")
+        confirmation_box.setWindowTitle(self.__tr("Prepare Merge"))
+        confirmation_box.setText(self.__tr("Are you sure you want to continue?"))
         confirmation_box.setInformativeText(
-            "Continuing will disable all mods in the current profile and load only the mods containing the selected plugins and their masters."
+            self.__tr(
+                "Continuing will disable all mods in the current profile and load only the mods containing the selected plugins and their masters."
+            )
         )
         confirmation_box.setStandardButtons(
             QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No

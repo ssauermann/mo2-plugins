@@ -4,6 +4,7 @@ from typing import List, Set, Tuple
 
 import PyQt5.QtCore as QtCore
 from PyQt5.QtCore import Qt, QModelIndex
+from PyQt5.QtWidgets import QApplication
 
 
 class PrepareMergeListModel(QtCore.QAbstractTableModel):
@@ -16,11 +17,14 @@ class PrepareMergeListModel(QtCore.QAbstractTableModel):
         self._indices_to_remove.clear()
         self.layoutChanged.emit()
 
+    def __tr(self, name: str):
+        return QApplication.translate("PrepareMerge", name)
+
     def headerData(
         self, section: int, orientation: Qt.Orientation, role: int = ...
     ) -> typing.Any:
         if role == Qt.DisplayRole:
-            return self._header[section]
+            return self.__tr(self._header[section])
 
     def data(self, index: QModelIndex, role: int = ...) -> typing.Any:
         if role == Qt.DisplayRole:

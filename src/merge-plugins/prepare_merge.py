@@ -9,7 +9,7 @@ from .prepare_merge_window import PrepareMergeWindow, PrepareMergeSettings
 
 class PrepareMerge(mobase.IPluginTool):
     NAME = "Prepare Merge"
-    DESCRIPTION = "TODO"
+    DESCRIPTION = "Finds and enables the mods containing a selected list of plugins and their required masters. Then places the selected plugins at the end of the load order."
 
     __organizer: mobase.IOrganizer
     _settings: PrepareMergeSettings

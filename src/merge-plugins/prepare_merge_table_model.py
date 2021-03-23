@@ -5,6 +5,7 @@ from typing import List, Dict, Tuple
 
 import PyQt5.QtCore as QtCore
 from PyQt5.QtCore import Qt, QModelIndex
+from PyQt5.QtWidgets import QApplication
 
 
 class PrepareMergeTableModel(QtCore.QAbstractTableModel):
@@ -18,6 +19,9 @@ class PrepareMergeTableModel(QtCore.QAbstractTableModel):
         Qt.AlignLeft | Qt.AlignVCenter,
     )
 
+    def __tr(self, name: str):
+        return QApplication.translate("PrepareMerge", name)
+
     def init_data(self, data):
         self._data = data
         self._selected.clear()
@@ -27,7 +31,7 @@ class PrepareMergeTableModel(QtCore.QAbstractTableModel):
         self, section: int, orientation: Qt.Orientation, role: int = ...
     ) -> typing.Any:
         if role == Qt.DisplayRole:
-            return self._header[section]
+            return self.__tr(self._header[section])
 
     def columnCount(self, parent: QModelIndex = ...) -> int:
         return 4
