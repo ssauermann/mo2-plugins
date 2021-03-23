@@ -104,9 +104,13 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         self.update_table_view()
 
     def create_list_widget(self):
-        selected_plugins = QtWidgets.QListView()
+        selected_plugins = QtWidgets.QTableView()
         selected_plugins.setModel(self._list_model)
-        selected_plugins.setModelColumn(1)
+        selected_plugins.setColumnHidden(0, True)
+        selected_plugins.setColumnHidden(2, True)
+        selected_plugins.setColumnHidden(3, True)
+        selected_plugins.verticalHeader().setVisible(False)
+        selected_plugins.horizontalHeader().setStretchLastSection(True)
 
         selected_plugins.setDragEnabled(True)
         # selected_plugins.setDragDropMode(QtWidgets.QAbstractItemView.DragDrop)

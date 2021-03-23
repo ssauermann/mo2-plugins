@@ -42,7 +42,6 @@ class PrepareMergeTableModel(QtCore.QAbstractTableModel):
 
         row = index.row()
         self._selected[self._data[row][0]] = True
-        # qDebug(f"set data: {value} {str(self._data)}")
 
         self.dataChanged.emit(self.index(row, 0), self.index(row, 4))
 
@@ -100,33 +99,43 @@ class PrepareMergeTableModel(QtCore.QAbstractTableModel):
         data_json = data.data("application/json").data().decode()
         new_data = json.loads(data_json)
 
+        qDebug(f"Drop mime table: {str(new_data)} {row} {column} {str(action)} {str(parent)}")
+
         if len(new_data) == 0 or len(new_data[0]) != 4:
             return False
 
         for d in new_data:
             self._selected[d[0]] = False
 
-        # TODO: More precise index?
-        self.dataChanged.emit(self.index(0, 0), self.index(len(self._data), 4))
+        self.dataChanged.emit(self.index(0, 0), self.index(len(self._data), len(self._data)))
 
         return True
 
 
 class PrepareMergeListModel(QtCore.QAbstractTableModel):
     _data: List[Tuple[int, str, int, str]] = []
+    _header = ("", "Selected Plugins", "", "")
 
     def __init__(self):
         super().__init__()
+        self.set_data = 0
 
     def init_data(self, data):
         self._data = data
         self.layoutChanged.emit()
 
-    def data(self, index: QModelIndex, role: int = ...) -> typing.Any:
+    def headerData(self, section: int, orientation: Qt.Orientation, role: int = ...) -> typing.Any:
         if role == Qt.DisplayRole:
-            return self._data[index.row()][index.column()]
-        elif role == Qt.ToolTipRole:
-            return f"{self._data[index.row()][3]}"
+            return self._header[section]
+
+    def data(self, index: QModelIndex, role: int = ...) -> typing.Any:
+        try:
+            if role == Qt.DisplayRole:
+                return self._data[index.row()][index.column()]
+            elif role == Qt.ToolTipRole:
+                return f"{self._data[index.row()][3]}"
+        except IndexError:
+            return None
 
     def moveRows(self, sourceParent: QModelIndex, sourceRow: int, count: int, destinationParent: QModelIndex,
                  destinationChild: int) -> bool:
@@ -158,31 +167,34 @@ class PrepareMergeListModel(QtCore.QAbstractTableModel):
         return True
 
     def removeRows(self, row: int, count: int, parent: QModelIndex = ...) -> bool:
-        qDebug(f"Foo {row} {count}")
-        #   if 0 <= row + count <= len(self._data):
-        #      #self.beginRemoveRows(parent, row, row + count - 1)
-        #     for _ in range(count):
-        #        pass
-        #       #self._data.pop(row)
-        #  #self.endRemoveRows()
-        # return True
+        if 0 <= row + count <= len(self._data):
+            self.beginRemoveRows(self.index(row, 0), row, row + count - 1)
+            for _ in range(count):
+                qDebug(str(self._data))
+                del self._data[row]
+            self.endRemoveRows()
+            return True
 
         return False
 
     def setData(self, index: QModelIndex, value: typing.Any, role: int = ...) -> bool:
-        qDebug(f"set data list: ")  # {value} {str(self._data)}")
+        if value:  # We don't support writing values
+            return False
 
-        # if value:  # We don't support writing values
-        return False
+        if index.column() != 1:
+            return True
 
         # Else: None-Value
         # This happens when we move rows to the left
-        # qDebug(f"set data: {value} {index.row()} {str(self._data)}")
-        # self.removeRows(index.row(), 1)
 
-        self.dataChanged.emit(index, index)
+        # For some reason setData is called twice for each item
+        self.set_data ^= 1  # invert flag
+        if self.set_data:  # only delete every second call
+            self.removeRows(index.row(), 1)
 
-        # return True
+            self.layoutChanged.emit()
+
+        return True
 
     def columnCount(self, parent: QModelIndex = ...) -> int:
         return 4
@@ -239,6 +251,8 @@ class PrepareMergeListModel(QtCore.QAbstractTableModel):
         data_json = data.data("application/json").data().decode()
         new_data = json.loads(data_json)
 
+        qDebug(f"Drop: {str(new_data)}")
+
         if len(new_data) == 0 or len(new_data[0]) != 4:
             return False
 
@@ -246,7 +260,8 @@ class PrepareMergeListModel(QtCore.QAbstractTableModel):
             self._data.insert(begin_row, d)
             begin_row += 1
 
-        # TODO: More precise index?
-        self.dataChanged.emit(self.index(0, 0), self.index(len(self._data), 4))
+        qDebug(f"Drop inserted: {str(self._data)}")
+
+        self.layoutChanged.emit()
 
         return True
