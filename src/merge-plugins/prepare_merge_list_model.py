@@ -1,6 +1,6 @@
+import json
 import typing
 from typing import List, Set, Tuple
-import json
 
 import PyQt5.QtCore as QtCore
 from PyQt5.QtCore import Qt, QModelIndex
@@ -16,7 +16,9 @@ class PrepareMergeListModel(QtCore.QAbstractTableModel):
         self._indices_to_remove.clear()
         self.layoutChanged.emit()
 
-    def headerData(self, section: int, orientation: Qt.Orientation, role: int = ...) -> typing.Any:
+    def headerData(
+        self, section: int, orientation: Qt.Orientation, role: int = ...
+    ) -> typing.Any:
         if role == Qt.DisplayRole:
             return self._header[section]
 
@@ -65,8 +67,14 @@ class PrepareMergeListModel(QtCore.QAbstractTableModel):
     def mimeTypes(self) -> typing.List[str]:
         return ["application/json"]
 
-    def dropMimeData(self, data: QtCore.QMimeData, action: Qt.DropAction, row: int, column: int,
-                     parent: QModelIndex) -> bool:
+    def dropMimeData(
+        self,
+        data: QtCore.QMimeData,
+        action: Qt.DropAction,
+        row: int,
+        column: int,
+        parent: QModelIndex,
+    ) -> bool:
 
         if action == Qt.IgnoreAction:
             return True

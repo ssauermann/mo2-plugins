@@ -1,7 +1,9 @@
+from typing import List
+
 import mobase
 
 from .prepare_merge import PrepareMerge
 
 
-def createPlugins() -> mobase.IPlugin:
+def createPlugins() -> List[mobase.IPlugin]:
     return [PrepareMerge()]

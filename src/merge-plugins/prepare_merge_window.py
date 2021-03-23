@@ -1,15 +1,17 @@
-import mobase
-
+import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
 import PyQt5.QtWidgets as QtWidgets
-import PyQt5.QtCore as QtCore
-
-from PyQt5.QtWidgets import QApplication
+import mobase
 from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QApplication
 
-from .prepare_merge_table_model import PrepareMergeTableModel
+from .prepare_merge_impl import (
+    activate_plugins_impl,
+    create_plugin_mapping_impl,
+    PluginMapping,
+)
 from .prepare_merge_list_model import PrepareMergeListModel
-from .prepare_merge_impl import activate_plugins_impl, create_plugin_mapping_impl, PluginMapping
+from .prepare_merge_table_model import PrepareMergeTableModel
 
 
 class PrepareMergeSettings:
@@ -21,7 +23,9 @@ class PrepareMergeWindow(QtWidgets.QDialog):
     def __tr(self, name: str):
         return QApplication.translate("PrepareMergeWindow", name)
 
-    def __init__(self, organizer: mobase.IOrganizer, settings: PrepareMergeSettings, parent=None):
+    def __init__(
+        self, organizer: mobase.IOrganizer, settings: PrepareMergeSettings, parent=None
+    ):
         self.__organizer = organizer
         self._settings = settings
 
@@ -61,7 +65,9 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         filter_box = QtWidgets.QLineEdit()
         filter_box.setClearButtonEnabled(True)
         filter_box.setPlaceholderText("Filter")
-        filter_box.textChanged.connect(lambda: self._table_model_proxy.setFilterWildcard(filter_box.text()))
+        filter_box.textChanged.connect(
+            lambda: self._table_model_proxy.setFilterWildcard(filter_box.text())
+        )
 
         wrapper_left = QtWidgets.QWidget()
         layout_left = QtWidgets.QVBoxLayout()
@@ -120,8 +126,12 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         table.verticalHeader().setVisible(False)
         table.setSortingEnabled(True)
         table_header = table.horizontalHeader()
-        table_header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)  # Priority plugin
-        table_header.setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeToContents)  # Priority mod
+        table_header.setSectionResizeMode(
+            0, QtWidgets.QHeaderView.ResizeToContents
+        )  # Priority plugin
+        table_header.setSectionResizeMode(
+            2, QtWidgets.QHeaderView.ResizeToContents
+        )  # Priority mod
         table_header.setCascadingSectionResizes(True)
         table_header.setStretchLastSection(True)
 
@@ -139,11 +149,15 @@ class PrepareMergeWindow(QtWidgets.QDialog):
     def create_button_layout(self):
         button_layout = QtWidgets.QHBoxLayout()
 
-        select_button = QtWidgets.QPushButton(self.__tr("&Load active profile as base"), self)
+        select_button = QtWidgets.QPushButton(
+            self.__tr("&Load active profile as base"), self
+        )
         select_button.clicked.connect(self.select_current_profile)
         button_layout.addWidget(select_button)
 
-        merge_button = QtWidgets.QPushButton(self.__tr("&Prepare merge in active profile"), self)
+        merge_button = QtWidgets.QPushButton(
+            self.__tr("&Prepare merge in active profile"), self
+        )
         merge_button.clicked.connect(self.show_activate_plugins)
         button_layout.addWidget(merge_button)
 
@@ -164,7 +178,9 @@ class PrepareMergeWindow(QtWidgets.QDialog):
     def select_current_profile(self):
         self._settings.selected_main_profile = self.__organizer.profile().name()
         self._settings.plugin_mapping.clear()
-        self._settings.plugin_mapping.extend(create_plugin_mapping_impl(self.__organizer))
+        self._settings.plugin_mapping.extend(
+            create_plugin_mapping_impl(self.__organizer)
+        )
         self._active_profile.setText(self._settings.selected_main_profile)
         self.update_table_view()
 
@@ -173,15 +189,20 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         confirmation_box.setWindowTitle("Prepare Merge")
         confirmation_box.setText("Are you sure you want to continue?")
         confirmation_box.setInformativeText(
-            "Continuing will disable all mods in the current profile and load only the mods containing the selected plugins and their masters.")
-        confirmation_box.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+            "Continuing will disable all mods in the current profile and load only the mods containing the selected plugins and their masters."
+        )
+        confirmation_box.setStandardButtons(
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
+        )
         value = confirmation_box.exec_()
         if value == QtWidgets.QMessageBox.Yes:
             self.activate_plugins()
 
     def activate_plugins(self):
-        plugins = [self._list_model.data(self._list_model.index(i, 1), Qt.DisplayRole)
-                   for i in range(self._list_model.rowCount())]
+        plugins = [
+            self._list_model.data(self._list_model.index(i, 1), Qt.DisplayRole)
+            for i in range(self._list_model.rowCount())
+        ]
         plugin_to_mod = dict()
 
         for _, p, _, m in self._settings.plugin_mapping:

@@ -1,8 +1,7 @@
 from typing import List
 
-import mobase
-
 import PyQt5.QtGui as QtGui
+import mobase
 from PyQt5.QtWidgets import QApplication
 
 from .prepare_merge_window import PrepareMergeWindow, PrepareMergeSettings

@@ -1,7 +1,7 @@
-import typing
-from typing import List, Dict, Tuple
 import json
+import typing
 from collections import defaultdict
+from typing import List, Dict, Tuple
 
 import PyQt5.QtCore as QtCore
 from PyQt5.QtCore import Qt, QModelIndex
@@ -11,14 +11,21 @@ class PrepareMergeTableModel(QtCore.QAbstractTableModel):
     _data: List[Tuple[int, str, int, str]] = []
     _selected: Dict[int, bool] = defaultdict(lambda: False)
     _header = ("Priority\n(Plugin)", "Plugin Name", "Priority\n(Mod)", "Mod Name")
-    _alignments = (Qt.AlignCenter, Qt.AlignLeft | Qt.AlignVCenter, Qt.AlignCenter, Qt.AlignLeft | Qt.AlignVCenter)
+    _alignments = (
+        Qt.AlignCenter,
+        Qt.AlignLeft | Qt.AlignVCenter,
+        Qt.AlignCenter,
+        Qt.AlignLeft | Qt.AlignVCenter,
+    )
 
     def init_data(self, data):
         self._data = data
         self._selected.clear()
         self.layoutChanged.emit()
 
-    def headerData(self, section: int, orientation: Qt.Orientation, role: int = ...) -> typing.Any:
+    def headerData(
+        self, section: int, orientation: Qt.Orientation, role: int = ...
+    ) -> typing.Any:
         if role == Qt.DisplayRole:
             return self._header[section]
 
@@ -83,8 +90,14 @@ class PrepareMergeTableModel(QtCore.QAbstractTableModel):
     def mimeTypes(self) -> typing.List[str]:
         return ["application/json"]
 
-    def dropMimeData(self, data: QtCore.QMimeData, action: Qt.DropAction, row: int, column: int,
-                     parent: QModelIndex) -> bool:
+    def dropMimeData(
+        self,
+        data: QtCore.QMimeData,
+        action: Qt.DropAction,
+        row: int,
+        column: int,
+        parent: QModelIndex,
+    ) -> bool:
         if action == Qt.IgnoreAction:
             return True
 
@@ -100,6 +113,8 @@ class PrepareMergeTableModel(QtCore.QAbstractTableModel):
         for d in new_data:
             self._selected[d[0]] = False
 
-        self.dataChanged.emit(self.index(0, 0), self.index(len(self._data), len(self._data)))
+        self.dataChanged.emit(
+            self.index(0, 0), self.index(len(self._data), len(self._data))
+        )
 
         return True

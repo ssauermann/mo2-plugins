@@ -1,6 +1,6 @@
-import mobase
 from typing import List, Dict, Tuple
 
+import mobase
 from PyQt5.QtCore import qInfo
 
 PluginMapping = List[Tuple[int, str, int, str]]
@@ -21,7 +21,9 @@ def create_plugin_mapping_impl(organizer: mobase.IOrganizer) -> PluginMapping:
     return data
 
 
-def activate_plugins_impl(organizer: mobase.IOrganizer, plugins: List[str], plugin_to_mod: Dict[str, str]):
+def activate_plugins_impl(
+    organizer: mobase.IOrganizer, plugins: List[str], plugin_to_mod: Dict[str, str]
+):
     modlist = organizer.modList()
     pluginlist = organizer.pluginList()
 
@@ -42,7 +44,11 @@ def activate_plugins_impl(organizer: mobase.IOrganizer, plugins: List[str], plug
 
     # Enable no plugins (except mandatory)
     enable_plugins([])
-    mandatory_plugins = [p for p in pluginlist.pluginNames() if pluginlist.state(p) == mobase.PluginState.ACTIVE]
+    mandatory_plugins = [
+        p
+        for p in pluginlist.pluginNames()
+        if pluginlist.state(p) == mobase.PluginState.ACTIVE
+    ]
 
     # Enable missing masters
     plugins_and_masters = set(mandatory_plugins)
@@ -62,8 +68,12 @@ def activate_plugins_impl(organizer: mobase.IOrganizer, plugins: List[str], plug
 
         # Missing masters found -> enable mods and do another round checking them for masters
         if len(plugins_and_masters_to_check) > 0:
-            additional_mods = set([plugin_to_mod[p] for p in plugins_and_masters_to_check])
-            qInfo(f"Enabling {additional_mods} containing missing masters {plugins_and_masters_to_check}")
+            additional_mods = set(
+                [plugin_to_mod[p] for p in plugins_and_masters_to_check]
+            )
+            qInfo(
+                f"Enabling {additional_mods} containing missing masters {plugins_and_masters_to_check}"
+            )
             modlist.setActive(list(additional_mods), active=True)
 
     # Enable only target plugins and their masters
