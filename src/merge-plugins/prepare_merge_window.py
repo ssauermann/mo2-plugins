@@ -13,7 +13,7 @@ from PyQt5.QtCore import Qt
 
 from PyQt5.QtCore import qDebug, qCritical, qWarning, qInfo
 
-from .prepare_merge_model import PrepareMergeTableModel
+from .prepare_merge_model import PrepareMergeTableModel, PrepareMergeListModel
 
 from .prepare_merge_impl import activate_plugins_impl, create_plugin_mapping_impl, PluginMapping
 
@@ -34,11 +34,13 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         super().__init__(parent)
 
         self._table_model = PrepareMergeTableModel()
-        self._list_model = PrepareMergeTableModel()
+        self._list_model = PrepareMergeListModel()
 
         self._table_model_proxy = QtCore.QSortFilterProxyModel()
         self._table_model_proxy.setSourceModel(self._table_model)
         self._table_model_proxy.setFilterKeyColumn(1)
+        self._table_model_proxy.setFilterCaseSensitivity(Qt.CaseInsensitive)
+        self._table_model_proxy.setSortCaseSensitivity(Qt.CaseInsensitive)
 
         self.resize(1280, 720)
         self.setWindowIcon(QtGui.QIcon())
@@ -75,7 +77,7 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         wrapper_left.setLayout(layout_left)
 
         selected_plugins_label = QtWidgets.QLabel()
-        selected_plugins_label.setText("Plugins selected for merge")
+        selected_plugins_label.setText("Drag and drop the plugins to merge here:")
 
         wrapper_right = QtWidgets.QWidget()
         layout_right = QtWidgets.QVBoxLayout()
@@ -139,8 +141,8 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         # table.setDragDropMode(QtWidgets.QAbstractItemView.DragDrop)
         # table.setDefaultDropAction(QtCore.Qt.MoveAction)
         table.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
-        # table.setDropIndicatorShown(True)
-        # table.setAcceptDrops(True)
+        table.setDropIndicatorShown(False)
+        table.setAcceptDrops(True)
 
         # table.setContextMenuPolicy(Qt.CustomContextMenu)
         # table.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
