@@ -1,5 +1,7 @@
-from typing import List, Dict, Set, Tuple
+from typing import List
+
 import mobase
+
 import PyQt5.QtGui as QtGui
 from PyQt5.QtWidgets import QApplication
 

@@ -1,20 +1,14 @@
-from typing import List, Dict, Set, Tuple
-
 import mobase
 
 import PyQt5.QtGui as QtGui
 import PyQt5.QtWidgets as QtWidgets
-
 import PyQt5.QtCore as QtCore
 
 from PyQt5.QtWidgets import QApplication
-
 from PyQt5.QtCore import Qt
 
-from PyQt5.QtCore import qDebug, qCritical, qWarning, qInfo
-
-from .prepare_merge_model import PrepareMergeTableModel, PrepareMergeListModel
-
+from .prepare_merge_table_model import PrepareMergeTableModel
+from .prepare_merge_list_model import PrepareMergeListModel
 from .prepare_merge_impl import activate_plugins_impl, create_plugin_mapping_impl, PluginMapping
 
 
@@ -104,36 +98,30 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         self.update_table_view()
 
     def create_list_widget(self):
-        selected_plugins = QtWidgets.QTableView()
+        selected_plugins = QtWidgets.QTreeView()
         selected_plugins.setModel(self._list_model)
         selected_plugins.setColumnHidden(0, True)
         selected_plugins.setColumnHidden(2, True)
         selected_plugins.setColumnHidden(3, True)
-        selected_plugins.verticalHeader().setVisible(False)
-        selected_plugins.horizontalHeader().setStretchLastSection(True)
+        selected_plugins.setRootIsDecorated(True)
 
         selected_plugins.setDragEnabled(True)
-        # selected_plugins.setDragDropMode(QtWidgets.QAbstractItemView.DragDrop)
         selected_plugins.setAcceptDrops(True)
         selected_plugins.setDropIndicatorShown(True)
-        # selected_plugins.setDefaultDropAction(QtCore.Qt.MoveAction)
         selected_plugins.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+        selected_plugins.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
 
         return selected_plugins
 
     def create_table_widget(self):
-        # Vertical Layout -> Reference Plugin List
         table = QtWidgets.QTableView()
         table.setModel(self._table_model_proxy)
 
-        # self.profileList.setColumnCount(4)
         table.verticalHeader().setVisible(False)
         table.setSortingEnabled(True)
         table_header = table.horizontalHeader()
         table_header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)  # Priority plugin
-        # table_header.setSectionResizeMode(1, QtWidgets.QHeaderView.Interactive) # Plugin name
         table_header.setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeToContents)  # Priority mod
-        # table_header.setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)  # Mod name
         table_header.setCascadingSectionResizes(True)
         table_header.setStretchLastSection(True)
 
@@ -142,15 +130,9 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
 
         table.setDragEnabled(True)
-        # table.setDragDropMode(QtWidgets.QAbstractItemView.DragDrop)
-        # table.setDefaultDropAction(QtCore.Qt.MoveAction)
         table.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         table.setDropIndicatorShown(False)
         table.setAcceptDrops(True)
-
-        # table.setContextMenuPolicy(Qt.CustomContextMenu)
-        # table.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        # table.customContextMenuRequested.connect(self.openProfileMenu)
 
         return table
 
