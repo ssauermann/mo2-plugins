@@ -5,6 +5,7 @@ import mobase
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication
 
+from .case_insensitive_dict import CaseInsensitiveDict
 from .prepare_merge_impl import (
     activate_plugins_impl,
     create_plugin_mapping_impl,
@@ -207,7 +208,7 @@ class PrepareMergeWindow(QtWidgets.QDialog):
             self._list_model.data(self._list_model.index(i, 1), Qt.DisplayRole)
             for i in range(self._list_model.rowCount())
         ]
-        plugin_to_mod = dict()
+        plugin_to_mod = CaseInsensitiveDict()
 
         for _, p, _, m in self._settings.plugin_mapping:
             plugin_to_mod[p] = m
