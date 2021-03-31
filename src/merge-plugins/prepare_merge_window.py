@@ -14,7 +14,7 @@ from .case_insensitive_dict import CaseInsensitiveDict
 from .prepare_merge_impl import (
     activate_plugins_impl,
     create_plugin_mapping_impl,
-    PluginMapping,
+    PluginMapping, PrepareMergeException,
 )
 from .prepare_merge_list_model import PrepareMergeListModel
 from .prepare_merge_table_model import PrepareMergeTableModel
@@ -223,7 +223,8 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         confirmation_box.setText(self.__tr("Are you sure you want to continue?"))
         confirmation_box.setInformativeText(
             self.__tr(
-                "Continuing will disable all mods in the current profile and load only the mods containing the selected plugins and their masters."
+                "Continuing will disable all mods in the current profile and load only the mods containing the"
+                " selected plugins and their masters."
             )
         )
         confirmation_box.setStandardButtons(
@@ -243,7 +244,25 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         for _, p, _, m in self._settings.plugin_mapping:
             plugin_to_mod[p] = m
 
-        activate_plugins_impl(self.__organizer, plugins, plugin_to_mod)
+        try:
+            activate_plugins_impl(self.__organizer, plugins, plugin_to_mod)
+        except PrepareMergeException as ex:
+            self.show_error(
+                f"The plugin '{ex.plugin}' is missing from the plugin-to-mod mapping.\n\n"
+                f"The mapping might just be out of date. "
+                f"Try to reload the base profile to regenerate it.\n\n"
+                f"An other reason might be that you already have missing master warnings in your base profile.")
+
+    def show_error(self, message):
+        exception_box = QtWidgets.QMessageBox()
+        exception_box.setWindowTitle(self.__tr("Prepare Merge"))
+        exception_box.setText(self.__tr("Something went wrong!"))
+        exception_box.setIcon(QtWidgets.QMessageBox.Warning)
+        exception_box.setInformativeText(
+            self.__tr(message)
+        )
+        exception_box.setStandardButtons(QtWidgets.QMessageBox.Ok)
+        exception_box.exec_()
 
     def load_settings(self):
         plugin_data = Path(self.__organizer.getPluginDataPath())
