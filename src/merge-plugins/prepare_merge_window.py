@@ -1,3 +1,8 @@
+import json
+from json import JSONDecodeError
+from pathlib import Path
+from typing import Tuple
+
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
 import PyQt5.QtWidgets as QtWidgets
@@ -16,8 +21,31 @@ from .prepare_merge_table_model import PrepareMergeTableModel
 
 
 class PrepareMergeSettings:
-    plugin_mapping: PluginMapping = []
-    selected_main_profile: str = ""
+    plugin_mapping: PluginMapping
+    selected_main_profile: str
+    version: Tuple[int, int, int]
+
+    def __init__(self, plugin_mapping=None, selected_main_profile="", version=(1, 1, 0)):
+        if plugin_mapping is None:
+            plugin_mapping = list()
+        self.plugin_mapping = plugin_mapping
+        self.selected_main_profile = selected_main_profile
+        self.version = version
+
+    def to_json(self):
+        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
+
+    def from_json(self, data_json: str):
+        try:
+            data = json.loads(data_json, object_hook=lambda o: PrepareMergeSettings(**o))
+            # version check to allow changes of the data structure in the future
+            if tuple(data.version) == self.version:
+                for x in data.plugin_mapping:
+                    if len(x) == 4:
+                        self.plugin_mapping.append(tuple(x))
+                self.selected_main_profile = str(data.selected_main_profile)
+        except JSONDecodeError:
+            pass
 
 
 class PrepareMergeWindow(QtWidgets.QDialog):
@@ -25,10 +53,11 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         return QApplication.translate("PrepareMerge", name)
 
     def __init__(
-        self, organizer: mobase.IOrganizer, settings: PrepareMergeSettings, parent=None
+        self, organizer: mobase.IOrganizer, parent=None
     ):
         self.__organizer = organizer
-        self._settings = settings
+        self._settings = PrepareMergeSettings()
+        self.load_settings()
 
         super().__init__(parent)
 
@@ -185,6 +214,7 @@ class PrepareMergeWindow(QtWidgets.QDialog):
             create_plugin_mapping_impl(self.__organizer)
         )
         self._active_profile.setText(self._settings.selected_main_profile)
+        self.store_settings()
         self.update_table_view()
 
     def show_activate_plugins(self):
@@ -214,3 +244,18 @@ class PrepareMergeWindow(QtWidgets.QDialog):
             plugin_to_mod[p] = m
 
         activate_plugins_impl(self.__organizer, plugins, plugin_to_mod)
+
+    def load_settings(self):
+        plugin_data = Path(self.__organizer.getPluginDataPath())
+        settings_path = plugin_data / "merge-plugins" / "prepare_merge.settings"
+        if settings_path.exists():
+            settings_file = settings_path.read_text()
+            self._settings.from_json(settings_file)
+
+    def store_settings(self):
+        plugin_data = Path(self.__organizer.getPluginDataPath())
+        settings_path = plugin_data / "merge-plugins"
+        settings_path.mkdir(parents=True, exist_ok=True)
+        settings_path /= "prepare_merge.settings"
+        settings_file = self._settings.to_json()
+        settings_path.write_text(settings_file)
