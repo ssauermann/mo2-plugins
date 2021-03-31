@@ -122,3 +122,16 @@ class PrepareMergeTableModel(QtCore.QAbstractTableModel):
         )
 
         return True
+
+    def selectEntry(self, text, column):
+        indices = self.match(self.index(0, column), Qt.DisplayRole, text)
+        if len(indices) == 1:
+            row = indices[0].row()
+            d = self._data[row]
+            if d[column] == text:
+                if not self._selected[d[0]]:
+                    self.setData(self.index(row, 0), None)
+                    return True, d
+                else:
+                    return True, None
+        return False, None

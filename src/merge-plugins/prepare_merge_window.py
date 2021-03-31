@@ -115,6 +115,7 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         layout_right = QtWidgets.QVBoxLayout()
         layout_right.addWidget(selected_plugins_label)
         layout_right.addWidget(self.create_list_widget())
+        layout_right.addWidget(self.create_import_button())
         wrapper_right.setLayout(layout_right)
         selected_plugins_label.setFixedHeight(20)  # same height as _active_profile
 
@@ -278,3 +279,29 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         settings_path /= "prepare_merge.settings"
         settings_file = self._settings.to_json()
         settings_path.write_text(settings_file)
+
+    def create_import_button(self):
+        import_button = QtWidgets.QPushButton(
+            self.__tr("&Import entries from clipboard"), self
+        )
+        import_button.clicked.connect(self.import_list)
+        return import_button
+
+    def import_list(self):
+        clipboard = QtGui.QGuiApplication.clipboard()
+        text = clipboard.text().split("\n")
+
+        valid_entries = []
+        for e in text:
+            e_cleaned = e.strip()
+            if len(e_cleaned) == 0:
+                continue
+            s, d = self._table_model.selectEntry(e_cleaned, 1)
+            if s and d:
+                valid_entries.append(d)
+            elif s:
+                QtCore.qInfo(f"Plugin already selected: '{e_cleaned}'")
+            else:
+                QtCore.qWarning(f"Plugin does not exist: '{e_cleaned}'")
+
+        self._list_model.insertEntries(self._list_model.rowCount(), valid_entries)

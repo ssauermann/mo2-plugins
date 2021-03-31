@@ -97,10 +97,13 @@ class PrepareMergeListModel(QtCore.QAbstractTableModel):
         if len(new_data) == 0 or len(new_data[0]) != 4:
             return False
 
-        self.beginInsertRows(QModelIndex(), begin_row, begin_row + len(new_data) - 1)
-        for d in new_data:
-            self._data.insert(begin_row, d)
-            begin_row += 1
-        self.endInsertRows()
+        self.insertEntries(begin_row, new_data)
 
         return True
+
+    def insertEntries(self, start, data):
+        self.beginInsertRows(QModelIndex(), start, start + len(data) - 1)
+        for d in data:
+            self._data.insert(start, d)
+            start += 1
+        self.endInsertRows()
