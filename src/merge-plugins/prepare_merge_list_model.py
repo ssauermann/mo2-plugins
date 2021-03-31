@@ -1,6 +1,6 @@
 import json
 import typing
-from typing import List, Set, Tuple
+from typing import List, Tuple
 
 import PyQt5.QtCore as QtCore
 from PyQt5.QtCore import Qt, QModelIndex
@@ -9,12 +9,10 @@ from PyQt5.QtWidgets import QApplication
 
 class PrepareMergeListModel(QtCore.QAbstractTableModel):
     _data: List[Tuple[int, str, int, str]] = []
-    _indices_to_remove: Set[int] = set()
     _header = ("", "Selected Plugins", "", "")
 
     def init_data(self, data):
         self._data = data
-        self._indices_to_remove.clear()
         self.layoutChanged.emit()
 
     def __tr(self, name: str):
