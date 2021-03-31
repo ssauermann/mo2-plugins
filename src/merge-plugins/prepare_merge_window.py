@@ -14,7 +14,8 @@ from .case_insensitive_dict import CaseInsensitiveDict
 from .prepare_merge_impl import (
     activate_plugins_impl,
     create_plugin_mapping_impl,
-    PluginMapping, PrepareMergeException,
+    PluginMapping,
+    PrepareMergeException,
 )
 from .prepare_merge_list_model import PrepareMergeListModel
 from .prepare_merge_table_model import PrepareMergeTableModel
@@ -25,7 +26,9 @@ class PrepareMergeSettings:
     selected_main_profile: str
     version: Tuple[int, int, int]
 
-    def __init__(self, plugin_mapping=None, selected_main_profile="", version=(1, 1, 0)):
+    def __init__(
+        self, plugin_mapping=None, selected_main_profile="", version=(1, 1, 0)
+    ):
         if plugin_mapping is None:
             plugin_mapping = list()
         self.plugin_mapping = plugin_mapping
@@ -37,7 +40,9 @@ class PrepareMergeSettings:
 
     def from_json(self, data_json: str):
         try:
-            data = json.loads(data_json, object_hook=lambda o: PrepareMergeSettings(**o))
+            data = json.loads(
+                data_json, object_hook=lambda o: PrepareMergeSettings(**o)
+            )
             # version check to allow changes of the data structure in the future
             if tuple(data.version) == self.version:
                 for x in data.plugin_mapping:
@@ -52,9 +57,7 @@ class PrepareMergeWindow(QtWidgets.QDialog):
     def __tr(self, name: str):
         return QApplication.translate("PrepareMerge", name)
 
-    def __init__(
-        self, organizer: mobase.IOrganizer, parent=None
-    ):
+    def __init__(self, organizer: mobase.IOrganizer, parent=None):
         self.__organizer = organizer
         self._settings = PrepareMergeSettings()
         self.load_settings()
@@ -252,16 +255,15 @@ class PrepareMergeWindow(QtWidgets.QDialog):
                 f"The plugin '{ex.plugin}' is missing from the plugin-to-mod mapping.\n\n"
                 f"The mapping might just be out of date. "
                 f"Try to reload the base profile to regenerate it.\n\n"
-                f"An other reason might be that you already have missing master warnings in your base profile.")
+                f"An other reason might be that you already have missing master warnings in your base profile."
+            )
 
     def show_error(self, message):
         exception_box = QtWidgets.QMessageBox()
         exception_box.setWindowTitle(self.__tr("Prepare Merge"))
         exception_box.setText(self.__tr("Something went wrong!"))
         exception_box.setIcon(QtWidgets.QMessageBox.Warning)
-        exception_box.setInformativeText(
-            self.__tr(message)
-        )
+        exception_box.setInformativeText(self.__tr(message))
         exception_box.setStandardButtons(QtWidgets.QMessageBox.Ok)
         exception_box.exec_()
 

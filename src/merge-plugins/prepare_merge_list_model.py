@@ -81,7 +81,9 @@ class PrepareMergeListModel(QtCore.QAbstractTableModel):
         if action == Qt.IgnoreAction:
             return True
 
-        if not data.hasFormat("application/json/table") and not data.hasFormat("application/json/list"):
+        if not data.hasFormat("application/json/table") and not data.hasFormat(
+            "application/json/list"
+        ):
             return False
 
         if row != -1:
