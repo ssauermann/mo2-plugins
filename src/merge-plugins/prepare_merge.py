@@ -4,7 +4,7 @@ import PyQt5.QtGui as QtGui
 import mobase
 from PyQt5.QtWidgets import QApplication
 
-from .prepare_merge_window import PrepareMergeWindow, PrepareMergeSettings
+from .prepare_merge_window import PrepareMergeWindow
 
 
 class PrepareMerge(mobase.IPluginTool):
@@ -12,7 +12,6 @@ class PrepareMerge(mobase.IPluginTool):
     DESCRIPTION = "Finds and enables the mods containing a selected list of plugins and their required masters. Then places the selected plugins at the end of the load order."
 
     __organizer: mobase.IOrganizer
-    _settings: PrepareMergeSettings
 
     def __tr(self, txt: str):
         return QApplication.translate("PrepareMerge", txt)
@@ -22,14 +21,13 @@ class PrepareMerge(mobase.IPluginTool):
         self.__window = None
         self.__organizer = None
         self.__parentWidget = None
-        self._settings = PrepareMergeSettings()
 
     def init(self, organizer: mobase.IOrganizer):
         self.__organizer = organizer
         return True
 
     def display(self):
-        self.__window = PrepareMergeWindow(self.__organizer, self._settings)
+        self.__window = PrepareMergeWindow(self.__organizer)
         self.__window.setWindowTitle(self.NAME)
         self.__window.exec_()
 

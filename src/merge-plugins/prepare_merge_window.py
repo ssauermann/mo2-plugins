@@ -1,3 +1,8 @@
+import json
+from json import JSONDecodeError
+from pathlib import Path
+from typing import Tuple
+
 import PyQt5.QtCore as QtCore
 import PyQt5.QtGui as QtGui
 import PyQt5.QtWidgets as QtWidgets
@@ -10,25 +15,52 @@ from .prepare_merge_impl import (
     activate_plugins_impl,
     create_plugin_mapping_impl,
     PluginMapping,
+    PrepareMergeException,
 )
 from .prepare_merge_list_model import PrepareMergeListModel
 from .prepare_merge_table_model import PrepareMergeTableModel
 
 
 class PrepareMergeSettings:
-    plugin_mapping: PluginMapping = []
-    selected_main_profile: str = ""
+    plugin_mapping: PluginMapping
+    selected_main_profile: str
+    version: Tuple[int, int, int]
+
+    def __init__(
+        self, plugin_mapping=None, selected_main_profile="", version=(1, 1, 0)
+    ):
+        if plugin_mapping is None:
+            plugin_mapping = list()
+        self.plugin_mapping = plugin_mapping
+        self.selected_main_profile = selected_main_profile
+        self.version = version
+
+    def to_json(self):
+        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
+
+    def from_json(self, data_json: str):
+        try:
+            data = json.loads(
+                data_json, object_hook=lambda o: PrepareMergeSettings(**o)
+            )
+            # version check to allow changes of the data structure in the future
+            if tuple(data.version) == self.version:
+                for x in data.plugin_mapping:
+                    if len(x) == 4:
+                        self.plugin_mapping.append(tuple(x))
+                self.selected_main_profile = str(data.selected_main_profile)
+        except JSONDecodeError:
+            pass
 
 
 class PrepareMergeWindow(QtWidgets.QDialog):
     def __tr(self, name: str):
         return QApplication.translate("PrepareMerge", name)
 
-    def __init__(
-        self, organizer: mobase.IOrganizer, settings: PrepareMergeSettings, parent=None
-    ):
+    def __init__(self, organizer: mobase.IOrganizer, parent=None):
         self.__organizer = organizer
-        self._settings = settings
+        self._settings = PrepareMergeSettings()
+        self.load_settings()
 
         super().__init__(parent)
 
@@ -86,6 +118,7 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         layout_right = QtWidgets.QVBoxLayout()
         layout_right.addWidget(selected_plugins_label)
         layout_right.addWidget(self.create_list_widget())
+        layout_right.addWidget(self.create_import_button())
         wrapper_right.setLayout(layout_right)
         selected_plugins_label.setFixedHeight(20)  # same height as _active_profile
 
@@ -185,6 +218,7 @@ class PrepareMergeWindow(QtWidgets.QDialog):
             create_plugin_mapping_impl(self.__organizer)
         )
         self._active_profile.setText(self._settings.selected_main_profile)
+        self.store_settings()
         self.update_table_view()
 
     def show_activate_plugins(self):
@@ -193,7 +227,8 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         confirmation_box.setText(self.__tr("Are you sure you want to continue?"))
         confirmation_box.setInformativeText(
             self.__tr(
-                "Continuing will disable all mods in the current profile and load only the mods containing the selected plugins and their masters."
+                "Continuing will disable all mods in the current profile and load only the mods containing the"
+                " selected plugins and their masters."
             )
         )
         confirmation_box.setStandardButtons(
@@ -213,4 +248,62 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         for _, p, _, m in self._settings.plugin_mapping:
             plugin_to_mod[p] = m
 
-        activate_plugins_impl(self.__organizer, plugins, plugin_to_mod)
+        try:
+            activate_plugins_impl(self.__organizer, plugins, plugin_to_mod)
+        except PrepareMergeException as ex:
+            self.show_error(
+                f"The plugin '{ex.plugin}' is missing from the plugin-to-mod mapping.\n\n"
+                f"The mapping might just be out of date. "
+                f"Try to reload the base profile to regenerate it.\n\n"
+                f"An other reason might be that you already have missing master warnings in your base profile."
+            )
+
+    def show_error(self, message):
+        exception_box = QtWidgets.QMessageBox()
+        exception_box.setWindowTitle(self.__tr("Prepare Merge"))
+        exception_box.setText(self.__tr("Something went wrong!"))
+        exception_box.setIcon(QtWidgets.QMessageBox.Warning)
+        exception_box.setInformativeText(self.__tr(message))
+        exception_box.setStandardButtons(QtWidgets.QMessageBox.Ok)
+        exception_box.exec_()
+
+    def load_settings(self):
+        plugin_data = Path(self.__organizer.getPluginDataPath())
+        settings_path = plugin_data / "merge-plugins" / "prepare_merge.settings"
+        if settings_path.exists():
+            settings_file = settings_path.read_text()
+            self._settings.from_json(settings_file)
+
+    def store_settings(self):
+        plugin_data = Path(self.__organizer.getPluginDataPath())
+        settings_path = plugin_data / "merge-plugins"
+        settings_path.mkdir(parents=True, exist_ok=True)
+        settings_path /= "prepare_merge.settings"
+        settings_file = self._settings.to_json()
+        settings_path.write_text(settings_file)
+
+    def create_import_button(self):
+        import_button = QtWidgets.QPushButton(
+            self.__tr("&Import entries from clipboard"), self
+        )
+        import_button.clicked.connect(self.import_list)
+        return import_button
+
+    def import_list(self):
+        clipboard = QtGui.QGuiApplication.clipboard()
+        text = clipboard.text().split("\n")
+
+        valid_entries = []
+        for e in text:
+            e_cleaned = e.strip()
+            if len(e_cleaned) == 0:
+                continue
+            s, d = self._table_model.selectEntry(e_cleaned, 1)
+            if s and d:
+                valid_entries.append(d)
+            elif s:
+                QtCore.qInfo(f"Plugin already selected: '{e_cleaned}'")
+            else:
+                QtCore.qWarning(f"Plugin does not exist: '{e_cleaned}'")
+
+        self._list_model.insertEntries(self._list_model.rowCount(), valid_entries)

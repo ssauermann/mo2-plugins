@@ -1,6 +1,6 @@
 import json
 import typing
-from typing import List, Set, Tuple
+from typing import List, Tuple
 
 import PyQt5.QtCore as QtCore
 from PyQt5.QtCore import Qt, QModelIndex
@@ -9,12 +9,10 @@ from PyQt5.QtWidgets import QApplication
 
 class PrepareMergeListModel(QtCore.QAbstractTableModel):
     _data: List[Tuple[int, str, int, str]] = []
-    _indices_to_remove: Set[int] = set()
     _header = ("", "Selected Plugins", "", "")
 
     def init_data(self, data):
         self._data = data
-        self._indices_to_remove.clear()
         self.layoutChanged.emit()
 
     def __tr(self, name: str):
@@ -65,11 +63,11 @@ class PrepareMergeListModel(QtCore.QAbstractTableModel):
         for i in indexes:
             data.append(self._data[i.row()])
         data_json = json.dumps(data)
-        mime_data.setData("application/json", data_json.encode())
+        mime_data.setData("application/json/list", data_json.encode())
         return mime_data
 
     def mimeTypes(self) -> typing.List[str]:
-        return ["application/json"]
+        return ["application/json/table", "application/json/list"]
 
     def dropMimeData(
         self,
@@ -83,7 +81,9 @@ class PrepareMergeListModel(QtCore.QAbstractTableModel):
         if action == Qt.IgnoreAction:
             return True
 
-        if not data.hasFormat("application/json"):
+        if not data.hasFormat("application/json/table") and not data.hasFormat(
+            "application/json/list"
+        ):
             return False
 
         if row != -1:
@@ -93,16 +93,22 @@ class PrepareMergeListModel(QtCore.QAbstractTableModel):
         else:
             begin_row = len(self._data)
 
-        data_json = data.data("application/json").data().decode()
+        if data.hasFormat("application/json/list"):
+            data_json = data.data("application/json/list").data().decode()
+        else:
+            data_json = data.data("application/json/table").data().decode()
         new_data = json.loads(data_json)
 
         if len(new_data) == 0 or len(new_data[0]) != 4:
             return False
 
-        self.beginInsertRows(QModelIndex(), begin_row, begin_row + len(new_data) - 1)
-        for d in new_data:
-            self._data.insert(begin_row, d)
-            begin_row += 1
-        self.endInsertRows()
+        self.insertEntries(begin_row, new_data)
 
         return True
+
+    def insertEntries(self, start, data):
+        self.beginInsertRows(QModelIndex(), start, start + len(data) - 1)
+        for d in data:
+            self._data.insert(start, d)
+            start += 1
+        self.endInsertRows()

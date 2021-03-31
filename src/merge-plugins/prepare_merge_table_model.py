@@ -88,11 +88,11 @@ class PrepareMergeTableModel(QtCore.QAbstractTableModel):
             if i.column() == 0:
                 data.append(self._data[i.row()])
         data_json = json.dumps(data)
-        mime_data.setData("application/json", data_json.encode())
+        mime_data.setData("application/json/table", data_json.encode())
         return mime_data
 
     def mimeTypes(self) -> typing.List[str]:
-        return ["application/json"]
+        return ["application/json/list"]
 
     def dropMimeData(
         self,
@@ -105,10 +105,10 @@ class PrepareMergeTableModel(QtCore.QAbstractTableModel):
         if action == Qt.IgnoreAction:
             return True
 
-        if not data.hasFormat("application/json"):
+        if not data.hasFormat("application/json/list"):
             return False
 
-        data_json = data.data("application/json").data().decode()
+        data_json = data.data("application/json/list").data().decode()
         new_data = json.loads(data_json)
 
         if len(new_data) == 0 or len(new_data[0]) != 4:
@@ -122,3 +122,16 @@ class PrepareMergeTableModel(QtCore.QAbstractTableModel):
         )
 
         return True
+
+    def selectEntry(self, text, column):
+        indices = self.match(self.index(0, column), Qt.DisplayRole, text)
+        if len(indices) == 1:
+            row = indices[0].row()
+            d = self._data[row]
+            if d[column] == text:
+                if not self._selected[d[0]]:
+                    self.setData(self.index(row, 0), None)
+                    return True, d
+                else:
+                    return True, None
+        return False, None
