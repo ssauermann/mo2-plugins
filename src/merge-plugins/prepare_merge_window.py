@@ -11,6 +11,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication
 
 from .case_insensitive_dict import CaseInsensitiveDict
+from .multi_filter_proxy_model import MultiFilterProxyModel, MultiFilterMode
 from .prepare_merge_impl import (
     activate_plugins_impl,
     create_plugin_mapping_impl,
@@ -67,9 +68,9 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         self._table_model = PrepareMergeTableModel()
         self._list_model = PrepareMergeListModel()
 
-        self._table_model_proxy = QtCore.QSortFilterProxyModel()
+        self._table_model_proxy = MultiFilterProxyModel()
+        self._table_model_proxy.setMultiFilterMode(MultiFilterMode.OR)
         self._table_model_proxy.setSourceModel(self._table_model)
-        self._table_model_proxy.setFilterKeyColumn(1)
         self._table_model_proxy.setFilterCaseSensitivity(Qt.CaseInsensitive)
         self._table_model_proxy.setSortCaseSensitivity(Qt.CaseInsensitive)
 
@@ -85,22 +86,26 @@ class PrepareMergeWindow(QtWidgets.QDialog):
 
         active_profile_layout = QtWidgets.QHBoxLayout()
         active_profile_label = QtWidgets.QLabel()
-        active_profile_label.setText(self.__tr("Base profile"))
+        active_profile_label.setText(self.__tr("Base profile:"))
         self._active_profile = QtWidgets.QLineEdit()
         self._active_profile.setReadOnly(True)
         self._active_profile.setFrame(False)
         self._active_profile.setPlaceholderText(self.__tr("No base profile selected"))
         self._active_profile.setText(self._settings.selected_main_profile)
-        active_profile_label.setFixedHeight(20)  # same height as _active_profile
+        self._active_profile.setFixedHeight(20)
+        active_profile_label.setFixedHeight(self._active_profile.height())
         active_profile_layout.addWidget(active_profile_label)
         active_profile_layout.addWidget(self._active_profile)
 
         filter_box = QtWidgets.QLineEdit()
         filter_box.setClearButtonEnabled(True)
         filter_box.setPlaceholderText(self.__tr("Filter"))
-        filter_box.textChanged.connect(
-            lambda: self._table_model_proxy.setFilterWildcard(filter_box.text())
-        )
+
+        def update_filter():
+            self._table_model_proxy.setFilterByColumn(1, filter_box.text())
+            self._table_model_proxy.setFilterByColumn(3, filter_box.text())
+
+        filter_box.textChanged.connect(update_filter)
 
         wrapper_left = QtWidgets.QWidget()
         layout_left = QtWidgets.QVBoxLayout()
@@ -118,7 +123,8 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         layout_right = QtWidgets.QVBoxLayout()
         layout_right.addWidget(selected_plugins_label)
         layout_right.addWidget(self.create_list_widget())
-        layout_right.addWidget(self.create_import_button())
+        import_button = self.create_import_button()
+        layout_right.addWidget(import_button)
         wrapper_right.setLayout(layout_right)
         selected_plugins_label.setFixedHeight(20)  # same height as _active_profile
 
@@ -126,7 +132,7 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         horizontal_split.addWidget(wrapper_right)
 
         vertical_layout.addWidget(horizontal_split)
-        vertical_layout.addLayout(self.create_button_layout())
+        vertical_layout.addLayout(self.create_button_layout(25))
 
         # Vertical Layout
         self.setLayout(vertical_layout)
@@ -137,6 +143,20 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         right_width = split_width - left_width
         horizontal_split.setSizes((left_width, right_width))
 
+        # Alignment fixes
+        filter_box.setFixedHeight(25)
+        filter_box.setContentsMargins(0, 1, 0, 1)
+        import_button.setFixedHeight(25)
+        selected_plugins_label.setFixedHeight(active_profile_label.height())
+
+        def profile_changed(old: mobase.IProfile, _: mobase.IProfile) -> None:
+            if old:
+                self.update_mapping(old.name())
+
+        self.__organizer.onProfileChanged(profile_changed)
+
+    def init(self):
+        self.update_mapping(self.__organizer.profile().name())
         self.update_table_view()
 
     def create_list_widget(self):
@@ -146,6 +166,7 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         selected_plugins.setColumnHidden(2, True)
         selected_plugins.setColumnHidden(3, True)
         selected_plugins.setRootIsDecorated(True)
+        selected_plugins.setStyleSheet("QTreeView::item {padding: 3px 0px;}")
 
         selected_plugins.setDragEnabled(True)
         selected_plugins.setAcceptDrops(True)
@@ -182,23 +203,26 @@ class PrepareMergeWindow(QtWidgets.QDialog):
 
         return table
 
-    def create_button_layout(self):
+    def create_button_layout(self, height):
         button_layout = QtWidgets.QHBoxLayout()
 
         select_button = QtWidgets.QPushButton(
             self.__tr("&Load active profile as base"), self
         )
         select_button.clicked.connect(self.select_current_profile)
+        select_button.setFixedHeight(height)
         button_layout.addWidget(select_button)
 
         merge_button = QtWidgets.QPushButton(
             self.__tr("&Prepare merge in active profile"), self
         )
         merge_button.clicked.connect(self.show_activate_plugins)
+        merge_button.setFixedHeight(height)
         button_layout.addWidget(merge_button)
 
         close_button = QtWidgets.QPushButton(self.__tr("&Close window"), self)
         close_button.clicked.connect(self.close)
+        close_button.setFixedHeight(height)
         button_layout.addWidget(close_button)
 
         return button_layout
@@ -211,14 +235,20 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         self._table_widget.resizeColumnToContents(1)
         self._table_widget.resizeColumnToContents(3)
 
+    def update_mapping(self, current_profile: str):
+        if self._settings.selected_main_profile == current_profile:
+            self._settings.plugin_mapping.clear()
+            self._settings.plugin_mapping.extend(
+                create_plugin_mapping_impl(self.__organizer)
+            )
+            self._active_profile.setText(self._settings.selected_main_profile)
+            self.store_settings()
+
     def select_current_profile(self):
         self._settings.selected_main_profile = self.__organizer.profile().name()
-        self._settings.plugin_mapping.clear()
-        self._settings.plugin_mapping.extend(
-            create_plugin_mapping_impl(self.__organizer)
-        )
-        self._active_profile.setText(self._settings.selected_main_profile)
         self.store_settings()
+
+        self.update_mapping(self.__organizer.profile().name())
         self.update_table_view()
 
     def show_activate_plugins(self):
@@ -252,16 +282,15 @@ class PrepareMergeWindow(QtWidgets.QDialog):
             activate_plugins_impl(self.__organizer, plugins, plugin_to_mod)
         except PrepareMergeException as ex:
             self.show_error(
-                f"The plugin '{ex.plugin}' is missing from the plugin-to-mod mapping.\n\n"
-                f"The mapping might just be out of date. "
-                f"Try to reload the base profile to regenerate it.\n\n"
-                f"An other reason might be that you already have missing master warnings in your base profile."
+                f"The plugin '{ex.plugin}' is missing in your base profile.\n\n"
+                f"Check if you already have missing master warnings.",
+                "Something went wrong!"
             )
 
-    def show_error(self, message):
+    def show_error(self, message, header):
         exception_box = QtWidgets.QMessageBox()
         exception_box.setWindowTitle(self.__tr("Prepare Merge"))
-        exception_box.setText(self.__tr("Something went wrong!"))
+        exception_box.setText(self.__tr(header))
         exception_box.setIcon(QtWidgets.QMessageBox.Warning)
         exception_box.setInformativeText(self.__tr(message))
         exception_box.setStandardButtons(QtWidgets.QMessageBox.Ok)
@@ -294,6 +323,7 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         text = clipboard.text().split("\n")
 
         valid_entries = []
+        invalid_entries = []
         for e in text:
             e_cleaned = e.strip()
             if len(e_cleaned) == 0:
@@ -305,5 +335,9 @@ class PrepareMergeWindow(QtWidgets.QDialog):
                 QtCore.qInfo(f"Plugin already selected: '{e_cleaned}'")
             else:
                 QtCore.qWarning(f"Plugin does not exist: '{e_cleaned}'")
+                invalid_entries.append(e_cleaned)
+
+        if len(invalid_entries) > 0:
+            self.show_error(f"The following plugins do not exist:\n{invalid_entries}", "Import failed!")
 
         self._list_model.insertEntries(self._list_model.rowCount(), valid_entries)
