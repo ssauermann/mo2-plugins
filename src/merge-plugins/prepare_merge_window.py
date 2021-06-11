@@ -86,13 +86,14 @@ class PrepareMergeWindow(QtWidgets.QDialog):
 
         active_profile_layout = QtWidgets.QHBoxLayout()
         active_profile_label = QtWidgets.QLabel()
-        active_profile_label.setText(self.__tr("Base profile"))
+        active_profile_label.setText(self.__tr("Base profile:"))
         self._active_profile = QtWidgets.QLineEdit()
         self._active_profile.setReadOnly(True)
         self._active_profile.setFrame(False)
         self._active_profile.setPlaceholderText(self.__tr("No base profile selected"))
         self._active_profile.setText(self._settings.selected_main_profile)
-        active_profile_label.setFixedHeight(20)  # same height as _active_profile
+        self._active_profile.setFixedHeight(20)
+        active_profile_label.setFixedHeight(self._active_profile.height())
         active_profile_layout.addWidget(active_profile_label)
         active_profile_layout.addWidget(self._active_profile)
 
@@ -122,7 +123,8 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         layout_right = QtWidgets.QVBoxLayout()
         layout_right.addWidget(selected_plugins_label)
         layout_right.addWidget(self.create_list_widget())
-        layout_right.addWidget(self.create_import_button())
+        import_button = self.create_import_button()
+        layout_right.addWidget(import_button)
         wrapper_right.setLayout(layout_right)
         selected_plugins_label.setFixedHeight(20)  # same height as _active_profile
 
@@ -130,7 +132,7 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         horizontal_split.addWidget(wrapper_right)
 
         vertical_layout.addWidget(horizontal_split)
-        vertical_layout.addLayout(self.create_button_layout())
+        vertical_layout.addLayout(self.create_button_layout(25))
 
         # Vertical Layout
         self.setLayout(vertical_layout)
@@ -140,6 +142,12 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         left_width = int(2 * split_width / 3)
         right_width = split_width - left_width
         horizontal_split.setSizes((left_width, right_width))
+
+        # Alignment fixes
+        filter_box.setFixedHeight(25)
+        filter_box.setContentsMargins(0, 1, 0, 1)
+        import_button.setFixedHeight(25)
+        selected_plugins_label.setFixedHeight(active_profile_label.height())
 
         self.update_mapping(self.__organizer.profile().name())
         self.update_table_view()
@@ -151,6 +159,7 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         selected_plugins.setColumnHidden(2, True)
         selected_plugins.setColumnHidden(3, True)
         selected_plugins.setRootIsDecorated(True)
+        selected_plugins.setStyleSheet("QTreeView::item {padding: 3px 0px;}")
 
         selected_plugins.setDragEnabled(True)
         selected_plugins.setAcceptDrops(True)
@@ -187,23 +196,26 @@ class PrepareMergeWindow(QtWidgets.QDialog):
 
         return table
 
-    def create_button_layout(self):
+    def create_button_layout(self, height):
         button_layout = QtWidgets.QHBoxLayout()
 
         select_button = QtWidgets.QPushButton(
             self.__tr("&Load active profile as base"), self
         )
         select_button.clicked.connect(self.select_current_profile)
+        select_button.setFixedHeight(height)
         button_layout.addWidget(select_button)
 
         merge_button = QtWidgets.QPushButton(
             self.__tr("&Prepare merge in active profile"), self
         )
         merge_button.clicked.connect(self.show_activate_plugins)
+        merge_button.setFixedHeight(height)
         button_layout.addWidget(merge_button)
 
         close_button = QtWidgets.QPushButton(self.__tr("&Close window"), self)
         close_button.clicked.connect(self.close)
+        close_button.setFixedHeight(height)
         button_layout.addWidget(close_button)
 
         return button_layout
