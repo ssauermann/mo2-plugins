@@ -11,6 +11,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication
 
 from .case_insensitive_dict import CaseInsensitiveDict
+from .multi_filter_proxy_model import MultiFilterProxyModel, MultiFilterMode
 from .prepare_merge_impl import (
     activate_plugins_impl,
     create_plugin_mapping_impl,
@@ -67,9 +68,9 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         self._table_model = PrepareMergeTableModel()
         self._list_model = PrepareMergeListModel()
 
-        self._table_model_proxy = QtCore.QSortFilterProxyModel()
+        self._table_model_proxy = MultiFilterProxyModel()
+        self._table_model_proxy.setMultiFilterMode(MultiFilterMode.OR)
         self._table_model_proxy.setSourceModel(self._table_model)
-        self._table_model_proxy.setFilterKeyColumn(1)
         self._table_model_proxy.setFilterCaseSensitivity(Qt.CaseInsensitive)
         self._table_model_proxy.setSortCaseSensitivity(Qt.CaseInsensitive)
 
@@ -98,9 +99,12 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         filter_box = QtWidgets.QLineEdit()
         filter_box.setClearButtonEnabled(True)
         filter_box.setPlaceholderText(self.__tr("Filter"))
-        filter_box.textChanged.connect(
-            lambda: self._table_model_proxy.setFilterWildcard(filter_box.text())
-        )
+
+        def update_filter():
+            self._table_model_proxy.setFilterByColumn(1, filter_box.text())
+            self._table_model_proxy.setFilterByColumn(3, filter_box.text())
+
+        filter_box.textChanged.connect(update_filter)
 
         wrapper_left = QtWidgets.QWidget()
         layout_left = QtWidgets.QVBoxLayout()
