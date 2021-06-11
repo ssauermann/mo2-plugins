@@ -264,16 +264,15 @@ class PrepareMergeWindow(QtWidgets.QDialog):
             activate_plugins_impl(self.__organizer, plugins, plugin_to_mod)
         except PrepareMergeException as ex:
             self.show_error(
-                f"The plugin '{ex.plugin}' is missing from the plugin-to-mod mapping.\n\n"
-                f"The mapping might just be out of date. "
-                f"Try to reload the base profile to regenerate it.\n\n"
-                f"An other reason might be that you already have missing master warnings in your base profile."
+                f"The plugin '{ex.plugin}' is missing in your base profile.\n\n"
+                f"Check if you already have missing master warnings.",
+                "Something went wrong!"
             )
 
-    def show_error(self, message):
+    def show_error(self, message, header):
         exception_box = QtWidgets.QMessageBox()
         exception_box.setWindowTitle(self.__tr("Prepare Merge"))
-        exception_box.setText(self.__tr("Something went wrong!"))
+        exception_box.setText(self.__tr(header))
         exception_box.setIcon(QtWidgets.QMessageBox.Warning)
         exception_box.setInformativeText(self.__tr(message))
         exception_box.setStandardButtons(QtWidgets.QMessageBox.Ok)
@@ -306,6 +305,7 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         text = clipboard.text().split("\n")
 
         valid_entries = []
+        invalid_entries = []
         for e in text:
             e_cleaned = e.strip()
             if len(e_cleaned) == 0:
@@ -317,5 +317,9 @@ class PrepareMergeWindow(QtWidgets.QDialog):
                 QtCore.qInfo(f"Plugin already selected: '{e_cleaned}'")
             else:
                 QtCore.qWarning(f"Plugin does not exist: '{e_cleaned}'")
+                invalid_entries.append(e_cleaned)
+
+        if len(invalid_entries) > 0:
+            self.show_error(f"The following plugins do not exist:\n{invalid_entries}", "Import failed!")
 
         self._list_model.insertEntries(self._list_model.rowCount(), valid_entries)
