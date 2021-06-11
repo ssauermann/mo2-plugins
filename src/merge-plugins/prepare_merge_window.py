@@ -137,6 +137,7 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         right_width = split_width - left_width
         horizontal_split.setSizes((left_width, right_width))
 
+        self.update_mapping(self.__organizer.profile().name())
         self.update_table_view()
 
     def create_list_widget(self):
@@ -211,15 +212,26 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         self._table_widget.resizeColumnToContents(1)
         self._table_widget.resizeColumnToContents(3)
 
+    def update_mapping(self, current_profile: str):
+        if self._settings.selected_main_profile == current_profile:
+            self._settings.plugin_mapping.clear()
+            self._settings.plugin_mapping.extend(
+                create_plugin_mapping_impl(self.__organizer)
+            )
+            self._active_profile.setText(self._settings.selected_main_profile)
+            self.store_settings()
+
     def select_current_profile(self):
         self._settings.selected_main_profile = self.__organizer.profile().name()
-        self._settings.plugin_mapping.clear()
-        self._settings.plugin_mapping.extend(
-            create_plugin_mapping_impl(self.__organizer)
-        )
-        self._active_profile.setText(self._settings.selected_main_profile)
         self.store_settings()
+
+        self.update_mapping(self.__organizer.profile().name())
         self.update_table_view()
+
+        def profile_changed(old: mobase.IProfile, _: mobase.IProfile) -> None:
+            self.update_mapping(old.name())
+
+        self.__organizer.onProfileChanged(profile_changed)
 
     def show_activate_plugins(self):
         confirmation_box = QtWidgets.QMessageBox()
