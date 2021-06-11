@@ -149,6 +149,13 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         import_button.setFixedHeight(25)
         selected_plugins_label.setFixedHeight(active_profile_label.height())
 
+        def profile_changed(old: mobase.IProfile, _: mobase.IProfile) -> None:
+            if old:
+                self.update_mapping(old.name())
+
+        self.__organizer.onProfileChanged(profile_changed)
+
+    def init(self):
         self.update_mapping(self.__organizer.profile().name())
         self.update_table_view()
 
@@ -243,11 +250,6 @@ class PrepareMergeWindow(QtWidgets.QDialog):
 
         self.update_mapping(self.__organizer.profile().name())
         self.update_table_view()
-
-        def profile_changed(old: mobase.IProfile, _: mobase.IProfile) -> None:
-            self.update_mapping(old.name())
-
-        self.__organizer.onProfileChanged(profile_changed)
 
     def show_activate_plugins(self):
         confirmation_box = QtWidgets.QMessageBox()

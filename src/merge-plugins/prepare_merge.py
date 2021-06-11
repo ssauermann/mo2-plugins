@@ -24,10 +24,11 @@ class PrepareMerge(mobase.IPluginTool):
 
     def init(self, organizer: mobase.IOrganizer):
         self.__organizer = organizer
+        self.__window = PrepareMergeWindow(self.__organizer)
         return True
 
     def display(self):
-        self.__window = PrepareMergeWindow(self.__organizer)
+        self.__window.init()
         self.__window.setWindowTitle(self.NAME)
         self.__window.exec_()
 
