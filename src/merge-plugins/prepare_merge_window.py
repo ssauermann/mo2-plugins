@@ -332,9 +332,9 @@ class PrepareMergeWindow(QtWidgets.QDialog):
             if s and d:
                 valid_entries.append(d)
             elif s:
-                QtCore.qInfo(f"Plugin already selected: '{e_cleaned}'")
+                QtCore.qInfo(f"Plugin already selected: '{e_cleaned}'".encode('ascii', 'replace').decode('ascii'))
             else:
-                QtCore.qWarning(f"Plugin does not exist: '{e_cleaned}'")
+                QtCore.qWarning(f"Plugin does not exist: '{e_cleaned}'".encode('ascii', 'replace').decode('ascii'))
                 invalid_entries.append(e_cleaned)
 
         if len(invalid_entries) > 0:

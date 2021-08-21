@@ -79,7 +79,7 @@ def activate_plugins_impl(
                     [plugin_to_mod[p] for p in plugins_and_masters_to_check]
                 )
                 qInfo(
-                    f"Enabling {additional_mods} containing missing masters {plugins_and_masters_to_check}"
+                    f"Enabling {additional_mods} containing missing masters {plugins_and_masters_to_check}".encode('ascii', 'replace').decode('ascii')
                 )
                 modlist.setActive(list(additional_mods), active=True)
 
