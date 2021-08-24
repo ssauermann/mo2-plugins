@@ -59,101 +59,105 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         return QApplication.translate("PrepareMerge", name)
 
     def __init__(self, organizer: mobase.IOrganizer, parent=None):
-        self.__organizer = organizer
-        self._settings = PrepareMergeSettings()
-        self.load_settings()
+        try:
+            self.__organizer = organizer
+            self._settings = PrepareMergeSettings()
+            self.load_settings()
 
-        super().__init__(parent)
+            super().__init__(parent)
 
-        self._table_model = PrepareMergeTableModel()
-        self._list_model = PrepareMergeListModel()
+            self._table_model = PrepareMergeTableModel()
+            self._list_model = PrepareMergeListModel()
 
-        self._table_model_proxy = MultiFilterProxyModel()
-        self._table_model_proxy.setMultiFilterMode(MultiFilterMode.OR)
-        self._table_model_proxy.setSourceModel(self._table_model)
-        self._table_model_proxy.setFilterCaseSensitivity(Qt.CaseInsensitive)
-        self._table_model_proxy.setSortCaseSensitivity(Qt.CaseInsensitive)
+            self._table_model_proxy = MultiFilterProxyModel()
+            self._table_model_proxy.setMultiFilterMode(MultiFilterMode.OR)
+            self._table_model_proxy.setSourceModel(self._table_model)
+            self._table_model_proxy.setFilterCaseSensitivity(Qt.CaseInsensitive)
+            self._table_model_proxy.setSortCaseSensitivity(Qt.CaseInsensitive)
 
-        self.resize(1280, 720)
-        self.setWindowIcon(QtGui.QIcon())
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+            self.resize(1280, 720)
+            self.setWindowIcon(QtGui.QIcon())
+            self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
 
-        # Vertical Layout
-        vertical_layout = QtWidgets.QVBoxLayout()
-        horizontal_split = QtWidgets.QSplitter()
+            # Vertical Layout
+            vertical_layout = QtWidgets.QVBoxLayout()
+            horizontal_split = QtWidgets.QSplitter()
 
-        self._table_widget = self.create_table_widget()
+            self._table_widget = self.create_table_widget()
 
-        active_profile_layout = QtWidgets.QHBoxLayout()
-        active_profile_label = QtWidgets.QLabel()
-        active_profile_label.setText(self.__tr("Base profile:"))
-        self._active_profile = QtWidgets.QLineEdit()
-        self._active_profile.setReadOnly(True)
-        self._active_profile.setFrame(False)
-        self._active_profile.setPlaceholderText(self.__tr("No base profile selected"))
-        self._active_profile.setText(self._settings.selected_main_profile)
-        self._active_profile.setFixedHeight(20)
-        active_profile_label.setFixedHeight(self._active_profile.height())
-        active_profile_layout.addWidget(active_profile_label)
-        active_profile_layout.addWidget(self._active_profile)
+            active_profile_layout = QtWidgets.QHBoxLayout()
+            active_profile_label = QtWidgets.QLabel()
+            active_profile_label.setText(self.__tr("Base profile:"))
+            self._active_profile = QtWidgets.QLineEdit()
+            self._active_profile.setReadOnly(True)
+            self._active_profile.setFrame(False)
+            self._active_profile.setPlaceholderText(self.__tr("No base profile selected"))
+            self._active_profile.setText(self._settings.selected_main_profile)
+            self._active_profile.setFixedHeight(20)
+            active_profile_label.setFixedHeight(self._active_profile.height())
+            active_profile_layout.addWidget(active_profile_label)
+            active_profile_layout.addWidget(self._active_profile)
 
-        filter_box = QtWidgets.QLineEdit()
-        filter_box.setClearButtonEnabled(True)
-        filter_box.setPlaceholderText(self.__tr("Filter"))
+            filter_box = QtWidgets.QLineEdit()
+            filter_box.setClearButtonEnabled(True)
+            filter_box.setPlaceholderText(self.__tr("Filter"))
 
-        def update_filter():
-            self._table_model_proxy.setFilterByColumn(1, filter_box.text())
-            self._table_model_proxy.setFilterByColumn(3, filter_box.text())
+            def update_filter():
+                self._table_model_proxy.setFilterByColumn(1, filter_box.text())
+                self._table_model_proxy.setFilterByColumn(3, filter_box.text())
 
-        filter_box.textChanged.connect(update_filter)
+            filter_box.textChanged.connect(update_filter)
 
-        wrapper_left = QtWidgets.QWidget()
-        layout_left = QtWidgets.QVBoxLayout()
-        layout_left.addLayout(active_profile_layout)
-        layout_left.addWidget(self._table_widget)
-        layout_left.addWidget(filter_box)
-        wrapper_left.setLayout(layout_left)
+            wrapper_left = QtWidgets.QWidget()
+            layout_left = QtWidgets.QVBoxLayout()
+            layout_left.addLayout(active_profile_layout)
+            layout_left.addWidget(self._table_widget)
+            layout_left.addWidget(filter_box)
+            wrapper_left.setLayout(layout_left)
 
-        selected_plugins_label = QtWidgets.QLabel()
-        selected_plugins_label.setText(
-            self.__tr("Drag and drop the plugins to merge here:")
-        )
+            selected_plugins_label = QtWidgets.QLabel()
+            selected_plugins_label.setText(
+                self.__tr("Drag and drop the plugins to merge here:")
+            )
 
-        wrapper_right = QtWidgets.QWidget()
-        layout_right = QtWidgets.QVBoxLayout()
-        layout_right.addWidget(selected_plugins_label)
-        layout_right.addWidget(self.create_list_widget())
-        import_button = self.create_import_button()
-        layout_right.addWidget(import_button)
-        wrapper_right.setLayout(layout_right)
-        selected_plugins_label.setFixedHeight(20)  # same height as _active_profile
+            wrapper_right = QtWidgets.QWidget()
+            layout_right = QtWidgets.QVBoxLayout()
+            layout_right.addWidget(selected_plugins_label)
+            layout_right.addWidget(self.create_list_widget())
+            import_button = self.create_import_button()
+            layout_right.addWidget(import_button)
+            wrapper_right.setLayout(layout_right)
+            selected_plugins_label.setFixedHeight(20)  # same height as _active_profile
 
-        horizontal_split.addWidget(wrapper_left)
-        horizontal_split.addWidget(wrapper_right)
+            horizontal_split.addWidget(wrapper_left)
+            horizontal_split.addWidget(wrapper_right)
 
-        vertical_layout.addWidget(horizontal_split)
-        vertical_layout.addLayout(self.create_button_layout(25))
+            vertical_layout.addWidget(horizontal_split)
+            vertical_layout.addLayout(self.create_button_layout(25))
 
-        # Vertical Layout
-        self.setLayout(vertical_layout)
+            # Vertical Layout
+            self.setLayout(vertical_layout)
 
-        # Resize splitter to 2:1 ratio
-        split_width = horizontal_split.width()
-        left_width = int(2 * split_width / 3)
-        right_width = split_width - left_width
-        horizontal_split.setSizes((left_width, right_width))
+            # Resize splitter to 2:1 ratio
+            split_width = horizontal_split.width()
+            left_width = int(2 * split_width / 3)
+            right_width = split_width - left_width
+            horizontal_split.setSizes((left_width, right_width))
 
-        # Alignment fixes
-        filter_box.setFixedHeight(25)
-        filter_box.setContentsMargins(0, 1, 0, 1)
-        import_button.setFixedHeight(25)
-        selected_plugins_label.setFixedHeight(active_profile_label.height())
+            # Alignment fixes
+            filter_box.setFixedHeight(25)
+            filter_box.setContentsMargins(0, 1, 0, 1)
+            import_button.setFixedHeight(25)
+            selected_plugins_label.setFixedHeight(active_profile_label.height())
 
-        def profile_changed(old: mobase.IProfile, _: mobase.IProfile) -> None:
-            if old:
-                self.update_mapping(old.name())
+            def profile_changed(old: mobase.IProfile, _: mobase.IProfile) -> None:
+                if old:
+                    self.update_mapping(old.name())
 
-        self.__organizer.onProfileChanged(profile_changed)
+            self.__organizer.onProfileChanged(profile_changed)
+        except Exception as ex:
+            self.show_error(repr(ex), "Critical error! Please report this on Nexus / GitHub.",
+                            QtWidgets.QMessageBox.Critical)
 
     def init(self):
         self.update_mapping(self.__organizer.profile().name())
@@ -245,11 +249,15 @@ class PrepareMergeWindow(QtWidgets.QDialog):
             self.store_settings()
 
     def select_current_profile(self):
-        self._settings.selected_main_profile = self.__organizer.profile().name()
-        self.store_settings()
+        try:
+            self._settings.selected_main_profile = self.__organizer.profile().name()
+            self.store_settings()
 
-        self.update_mapping(self.__organizer.profile().name())
-        self.update_table_view()
+            self.update_mapping(self.__organizer.profile().name())
+            self.update_table_view()
+        except Exception as ex:
+            self.show_error(repr(ex), self.__tr("Critical error! Please report this on Nexus / GitHub."),
+                            QtWidgets.QMessageBox.Critical)
 
     def show_activate_plugins(self):
         confirmation_box = QtWidgets.QMessageBox()
@@ -268,30 +276,43 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         if value == QtWidgets.QMessageBox.Yes:
             self.activate_plugins()
 
+    def show_success(self, active_plugins, active_mods):
+        info_box = QtWidgets.QMessageBox()
+        info_box.setWindowTitle(self.__tr("Prepare Merge"))
+        info_box.setText(self.__tr("Success! The following mods and plugins were activated:"))
+        info_box.setInformativeText(f"Mods:\n{str(active_mods)}\n\nPlugins:\n{str(active_plugins)}")
+        info_box.setStandardButtons(QtWidgets.QMessageBox.Ok)
+        info_box.exec_()
+
     def activate_plugins(self):
-        plugins = [
-            self._list_model.data(self._list_model.index(i, 1), Qt.DisplayRole)
-            for i in range(self._list_model.rowCount())
-        ]
-        plugin_to_mod = CaseInsensitiveDict()
-
-        for _, p, _, m in self._settings.plugin_mapping:
-            plugin_to_mod[p] = m
-
         try:
-            activate_plugins_impl(self.__organizer, plugins, plugin_to_mod)
+            plugins = [
+                self._list_model.data(self._list_model.index(i, 1), Qt.DisplayRole)
+                for i in range(self._list_model.rowCount())
+            ]
+            plugin_to_mod = CaseInsensitiveDict()
+
+            for _, p, _, m in self._settings.plugin_mapping:
+                plugin_to_mod[p] = m
+
+            (active_plugins, active_mods) = activate_plugins_impl(self.__organizer, plugins, plugin_to_mod)
+            self.show_success(active_plugins, active_mods)
+
         except PrepareMergeException as ex:
             self.show_error(
                 f"The plugin '{ex.plugin}' is missing in your base profile.\n\n"
                 f"Check if you already have missing master warnings.",
                 "Something went wrong!"
             )
+        except Exception as ex:
+            self.show_error(repr(ex), "Critical error! Please report this on Nexus / GitHub.",
+                            QtWidgets.QMessageBox.Critical)
 
-    def show_error(self, message, header):
+    def show_error(self, message, header, icon=QtWidgets.QMessageBox.Warning):
         exception_box = QtWidgets.QMessageBox()
         exception_box.setWindowTitle(self.__tr("Prepare Merge"))
         exception_box.setText(self.__tr(header))
-        exception_box.setIcon(QtWidgets.QMessageBox.Warning)
+        exception_box.setIcon(icon)
         exception_box.setInformativeText(self.__tr(message))
         exception_box.setStandardButtons(QtWidgets.QMessageBox.Ok)
         exception_box.exec_()
@@ -319,25 +340,29 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         return import_button
 
     def import_list(self):
-        clipboard = QtGui.QGuiApplication.clipboard()
-        text = clipboard.text().split("\n")
+        try:
+            clipboard = QtGui.QGuiApplication.clipboard()
+            text = clipboard.text().split("\n")
 
-        valid_entries = []
-        invalid_entries = []
-        for e in text:
-            e_cleaned = e.strip()
-            if len(e_cleaned) == 0:
-                continue
-            s, d = self._table_model.selectEntry(e_cleaned, 1)
-            if s and d:
-                valid_entries.append(d)
-            elif s:
-                QtCore.qInfo(f"Plugin already selected: '{e_cleaned}'")
-            else:
-                QtCore.qWarning(f"Plugin does not exist: '{e_cleaned}'")
-                invalid_entries.append(e_cleaned)
+            valid_entries = []
+            invalid_entries = []
+            for e in text:
+                e_cleaned = e.strip()
+                if len(e_cleaned) == 0:
+                    continue
+                s, d = self._table_model.selectEntry(e_cleaned, 1)
+                if s and d:
+                    valid_entries.append(d)
+                elif s:
+                    QtCore.qInfo(f"Plugin already selected: '{e_cleaned}'".encode('ascii', 'replace').decode('ascii'))
+                else:
+                    QtCore.qWarning(f"Plugin does not exist: '{e_cleaned}'".encode('ascii', 'replace').decode('ascii'))
+                    invalid_entries.append(e_cleaned)
 
-        if len(invalid_entries) > 0:
-            self.show_error(f"The following plugins do not exist:\n{invalid_entries}", "Import failed!")
+            if len(invalid_entries) > 0:
+                self.show_error(f"The following plugins do not exist:\n{invalid_entries}", "Import failed!")
 
-        self._list_model.insertEntries(self._list_model.rowCount(), valid_entries)
+            self._list_model.insertEntries(self._list_model.rowCount(), valid_entries)
+        except Exception as ex:
+            self.show_error(repr(ex), "Critical error! Please report this on Nexus / GitHub.",
+                            QtWidgets.QMessageBox.Critical)

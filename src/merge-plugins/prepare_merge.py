@@ -56,7 +56,7 @@ class PrepareMerge(mobase.IPluginTool):
         return self.__tr(self.DESCRIPTION)
 
     def version(self) -> mobase.VersionInfo:
-        return mobase.VersionInfo(1, 2, 0, mobase.ReleaseType.FINAL)
+        return mobase.VersionInfo(1, 2, 1, mobase.ReleaseType.FINAL)
 
     def isActive(self) -> bool:
         return self.__organizer.pluginSetting(self.name(), "enabled")
