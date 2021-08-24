@@ -35,6 +35,9 @@ def activate_plugins_impl(
     # Disable all mods
     modlist.setActive(modlist.allMods(), active=False)
 
+    enabled_plugins = set()
+    enabled_mods = set()
+
     try:
 
         mods = [plugin_to_mod[p] for p in plugins]
@@ -79,9 +82,11 @@ def activate_plugins_impl(
                     [plugin_to_mod[p] for p in plugins_and_masters_to_check]
                 )
                 qInfo(
-                    f"Enabling {additional_mods} containing missing masters {plugins_and_masters_to_check}".encode('ascii', 'replace').decode('ascii')
+                    f"Enabling {additional_mods} containing missing masters {plugins_and_masters_to_check}".encode(
+                        'ascii', 'replace').decode('ascii')
                 )
                 modlist.setActive(list(additional_mods), active=True)
+                enabled_mods.update(additional_mods)
 
     except KeyError as e:
         raise PrepareMergeException(e.args[0])
@@ -90,7 +95,12 @@ def activate_plugins_impl(
     # Not other plugins inside the same mod
     enable_plugins(plugins_and_masters)
 
+    enabled_plugins.update(plugins_and_masters)
+    enabled_plugins.difference_update(mandatory_plugins)
+
     # Place plugins at end of load order
     max_priority = len(pluginlist.pluginNames()) - 1
     for p in plugins:
         pluginlist.setPriority(p, max_priority)
+
+    return list(enabled_plugins), list(enabled_mods)
