@@ -1,8 +1,13 @@
 from typing import List
 
-import PyQt6.QtGui as QtGui
 import mobase
-from PyQt6.QtWidgets import QApplication
+
+try:
+    import PyQt6.QtGui as QtGui
+    from PyQt6.QtWidgets import QApplication
+except ImportError:
+    import PyQt5.QtGui as QtGui
+    from PyQt5.QtWidgets import QApplication
 
 from .prepare_merge_window import PrepareMergeWindow
 

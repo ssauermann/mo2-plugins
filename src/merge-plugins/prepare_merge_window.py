@@ -3,12 +3,20 @@ from json import JSONDecodeError
 from pathlib import Path
 from typing import Tuple
 
-import PyQt6.QtCore as QtCore
-import PyQt6.QtGui as QtGui
-import PyQt6.QtWidgets as QtWidgets
 import mobase
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QApplication
+
+try:
+    import PyQt6.QtCore as QtCore
+    import PyQt6.QtGui as QtGui
+    import PyQt6.QtWidgets as QtWidgets
+    from PyQt6.QtCore import Qt
+    from PyQt6.QtWidgets import QApplication
+except ImportError:
+    import PyQt5.QtCore as QtCore
+    import PyQt5.QtGui as QtGui
+    import PyQt5.QtWidgets as QtWidgets
+    from PyQt5.QtCore import Qt
+    from PyQt5.QtWidgets import QApplication
 
 from .case_insensitive_dict import CaseInsensitiveDict
 from .multi_filter_proxy_model import MultiFilterProxyModel, MultiFilterMode

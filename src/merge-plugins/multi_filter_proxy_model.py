@@ -1,7 +1,10 @@
 # based on https://stackoverflow.com/a/57845903
 import re
 
-from PyQt6.QtCore import Qt, QSortFilterProxyModel
+try:
+    from PyQt6.QtCore import Qt, QSortFilterProxyModel
+except ImportError:
+    from PyQt5.QtCore import Qt, QSortFilterProxyModel
 
 
 class MultiFilterMode:

@@ -1,7 +1,10 @@
 from typing import List, Dict, Tuple
 
 import mobase
-from PyQt6.QtCore import qInfo
+try:
+    from PyQt6.QtCore import qInfo
+except ImportError:
+    from PyQt5.QtCore import qInfo
 
 PluginMapping = List[Tuple[int, str, int, str]]
 

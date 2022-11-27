@@ -2,9 +2,14 @@ import json
 import typing
 from typing import List, Tuple
 
-import PyQt6.QtCore as QtCore
-from PyQt6.QtCore import Qt, QModelIndex
-from PyQt6.QtWidgets import QApplication
+try:
+    import PyQt6.QtCore as QtCore
+    from PyQt6.QtCore import Qt, QModelIndex
+    from PyQt6.QtWidgets import QApplication
+except ImportError:
+    import PyQt5.QtCore as QtCore
+    from PyQt5.QtCore import Qt, QModelIndex
+    from PyQt5.QtWidgets import QApplication
 
 
 class PrepareMergeListModel(QtCore.QAbstractTableModel):
