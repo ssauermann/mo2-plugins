@@ -1,8 +1,13 @@
 from typing import List
 
-import PyQt5.QtGui as QtGui
 import mobase
-from PyQt5.QtWidgets import QApplication
+
+try:
+    import PyQt6.QtGui as QtGui
+    from PyQt6.QtWidgets import QApplication
+except ImportError:
+    import PyQt5.QtGui as QtGui
+    from PyQt5.QtWidgets import QApplication
 
 from .prepare_merge_window import PrepareMergeWindow
 
@@ -30,7 +35,7 @@ class PrepareMerge(mobase.IPluginTool):
     def display(self):
         self.__window.init()
         self.__window.setWindowTitle(f"{self.NAME} v{self.version().displayString()}")
-        self.__window.exec_()
+        self.__window.exec()
 
     def displayName(self):
         return self.__tr(self.NAME)
@@ -44,7 +49,7 @@ class PrepareMerge(mobase.IPluginTool):
     # IPlugin
 
     def author(self) -> str:
-        return "ssauermann"
+        return "Hannah Sauermann"
 
     def name(self) -> str:
         return self.NAME
@@ -56,7 +61,7 @@ class PrepareMerge(mobase.IPluginTool):
         return self.__tr(self.DESCRIPTION)
 
     def version(self) -> mobase.VersionInfo:
-        return mobase.VersionInfo(1, 2, 1, mobase.ReleaseType.FINAL)
+        return mobase.VersionInfo(1, 2, 2, 0, mobase.ReleaseType.FINAL)
 
     def isActive(self) -> bool:
         return self.__organizer.pluginSetting(self.name(), "enabled")

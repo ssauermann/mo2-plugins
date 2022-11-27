@@ -3,9 +3,14 @@ import typing
 from collections import defaultdict
 from typing import List, Dict, Tuple
 
-import PyQt5.QtCore as QtCore
-from PyQt5.QtCore import Qt, QModelIndex
-from PyQt5.QtWidgets import QApplication
+try:
+    import PyQt6.QtCore as QtCore
+    from PyQt6.QtCore import Qt, QModelIndex
+    from PyQt6.QtWidgets import QApplication
+except ImportError:
+    import PyQt5.QtCore as QtCore
+    from PyQt5.QtCore import Qt, QModelIndex
+    from PyQt5.QtWidgets import QApplication
 
 
 class PrepareMergeTableModel(QtCore.QAbstractTableModel):
@@ -13,10 +18,10 @@ class PrepareMergeTableModel(QtCore.QAbstractTableModel):
     _selected: Dict[int, bool] = defaultdict(lambda: False)
     _header = ("Priority\n(Plugin)", "Plugin Name", "Priority\n(Mod)", "Mod Name")
     _alignments = (
-        Qt.AlignCenter,
-        Qt.AlignLeft | Qt.AlignVCenter,
-        Qt.AlignCenter,
-        Qt.AlignLeft | Qt.AlignVCenter,
+        Qt.AlignmentFlag.AlignCenter,
+        Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+        Qt.AlignmentFlag.AlignCenter,
+        Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
     )
 
     def __tr(self, name: str):
@@ -30,7 +35,7 @@ class PrepareMergeTableModel(QtCore.QAbstractTableModel):
     def headerData(
         self, section: int, orientation: Qt.Orientation, role: int = ...
     ) -> typing.Any:
-        if role == Qt.DisplayRole:
+        if role == Qt.ItemDataRole.DisplayRole:
             return self.__tr(self._header[section])
 
     def columnCount(self, parent: QModelIndex = ...) -> int:
@@ -40,27 +45,27 @@ class PrepareMergeTableModel(QtCore.QAbstractTableModel):
         return len(self._data)
 
     def data(self, index: QModelIndex, role: int = ...) -> typing.Any:
-        if role == Qt.DisplayRole:
+        if role == Qt.ItemDataRole.DisplayRole:
             return self._data[index.row()][index.column()]
-        elif role == Qt.TextAlignmentRole:
+        elif role == Qt.ItemDataRole.TextAlignmentRole:
             return self._alignments[index.column()]
 
-    def supportedDropActions(self) -> Qt.DropActions:
-        return Qt.MoveAction
+    def supportedDropActions(self) -> Qt.DropAction:
+        return Qt.DropAction.MoveAction
 
-    def supportedDragActions(self) -> Qt.DropActions:
-        return Qt.MoveAction
+    def supportedDragActions(self) -> Qt.DropAction:
+        return Qt.DropAction.MoveAction
 
-    def flags(self, index: QModelIndex) -> Qt.ItemFlags:
+    def flags(self, index: QModelIndex) -> Qt.ItemFlag:
         default_flags = super().flags(index)
 
         if index.isValid():
             if not self.isSelected(index):
-                return default_flags | Qt.ItemIsDragEnabled
+                return default_flags | Qt.ItemFlag.ItemIsDragEnabled
             else:
-                return default_flags ^ Qt.ItemIsEnabled
+                return default_flags ^ Qt.ItemFlag.ItemIsEnabled
 
-        return default_flags | Qt.ItemIsDropEnabled
+        return default_flags | Qt.ItemFlag.ItemIsDropEnabled
 
     def setData(self, index: QModelIndex, value: typing.Any, role: int = ...) -> bool:
         if value:  # We don't support writing values
@@ -102,7 +107,7 @@ class PrepareMergeTableModel(QtCore.QAbstractTableModel):
         column: int,
         parent: QModelIndex,
     ) -> bool:
-        if action == Qt.IgnoreAction:
+        if action == Qt.DropAction.IgnoreAction:
             return True
 
         if not data.hasFormat("application/json/list"):
@@ -124,7 +129,7 @@ class PrepareMergeTableModel(QtCore.QAbstractTableModel):
         return True
 
     def selectEntry(self, text, column):
-        indices = self.match(self.index(0, column), Qt.DisplayRole, text)
+        indices = self.match(self.index(0, column), Qt.ItemDataRole.DisplayRole, text)
         if len(indices) == 1:
             row = indices[0].row()
             d = self._data[row]
