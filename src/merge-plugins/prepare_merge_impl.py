@@ -46,6 +46,12 @@ def activate_plugins_impl(
         mods = [plugin_to_mod[p] for p in plugins]
         # Enable mods with selected plugins
         modlist.setActive(mods, active=True)
+        enabled_mods.update(mods)
+
+        qInfo(
+            f"Enabling {mods} containing the selected plugins {plugins}".encode(
+                'ascii', 'replace').decode('ascii')
+        )
 
         # Enable only selected plugins
         def enable_plugins(plugins_to_enable):
