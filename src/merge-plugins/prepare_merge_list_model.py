@@ -2,9 +2,14 @@ import json
 import typing
 from typing import List, Tuple
 
-import PyQt5.QtCore as QtCore
-from PyQt5.QtCore import Qt, QModelIndex
-from PyQt5.QtWidgets import QApplication
+try:
+    import PyQt6.QtCore as QtCore
+    from PyQt6.QtCore import Qt, QModelIndex
+    from PyQt6.QtWidgets import QApplication
+except ImportError:
+    import PyQt5.QtCore as QtCore
+    from PyQt5.QtCore import Qt, QModelIndex
+    from PyQt5.QtWidgets import QApplication
 
 
 class PrepareMergeListModel(QtCore.QAbstractTableModel):
@@ -21,13 +26,13 @@ class PrepareMergeListModel(QtCore.QAbstractTableModel):
     def headerData(
         self, section: int, orientation: Qt.Orientation, role: int = ...
     ) -> typing.Any:
-        if role == Qt.DisplayRole:
+        if role == Qt.ItemDataRole.DisplayRole:
             return self.__tr(self._header[section])
 
     def data(self, index: QModelIndex, role: int = ...) -> typing.Any:
-        if role == Qt.DisplayRole:
+        if role == Qt.ItemDataRole.DisplayRole:
             return self._data[index.row()][index.column()]
-        elif role == Qt.ToolTipRole:
+        elif role == Qt.ItemDataRole.ToolTipRole:
             return f"{self._data[index.row()][3]}"
 
     def removeRows(self, row: int, count: int, parent: QModelIndex = ...) -> bool:
@@ -43,19 +48,19 @@ class PrepareMergeListModel(QtCore.QAbstractTableModel):
     def rowCount(self, parent: QModelIndex = ...) -> int:
         return len(self._data)
 
-    def supportedDropActions(self) -> Qt.DropActions:
-        return Qt.MoveAction
+    def supportedDropActions(self) -> Qt.DropAction:
+        return Qt.DropAction.MoveAction
 
-    def supportedDragActions(self) -> Qt.DropActions:
-        return Qt.MoveAction
+    def supportedDragActions(self) -> Qt.DropAction:
+        return Qt.DropAction.MoveAction
 
-    def flags(self, index: QModelIndex) -> Qt.ItemFlags:
+    def flags(self, index: QModelIndex) -> Qt.ItemFlag:
         default_flags = super().flags(index)
 
         if index.isValid():
-            return default_flags | Qt.ItemIsDragEnabled
+            return default_flags | Qt.ItemFlag.ItemIsDragEnabled
         else:
-            return default_flags | Qt.ItemIsDropEnabled
+            return default_flags | Qt.ItemFlag.ItemIsDropEnabled
 
     def mimeData(self, indexes: typing.Iterable[QModelIndex]) -> QtCore.QMimeData:
         mime_data = QtCore.QMimeData()
@@ -78,7 +83,7 @@ class PrepareMergeListModel(QtCore.QAbstractTableModel):
         parent: QModelIndex,
     ) -> bool:
 
-        if action == Qt.IgnoreAction:
+        if action == Qt.DropAction.IgnoreAction:
             return True
 
         if not data.hasFormat("application/json/table") and not data.hasFormat(
