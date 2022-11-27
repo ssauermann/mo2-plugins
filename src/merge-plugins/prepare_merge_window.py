@@ -3,12 +3,12 @@ from json import JSONDecodeError
 from pathlib import Path
 from typing import Tuple
 
-import PyQt5.QtCore as QtCore
-import PyQt5.QtGui as QtGui
-import PyQt5.QtWidgets as QtWidgets
+import PyQt6.QtCore as QtCore
+import PyQt6.QtGui as QtGui
+import PyQt6.QtWidgets as QtWidgets
 import mobase
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QApplication
 
 from .case_insensitive_dict import CaseInsensitiveDict
 from .multi_filter_proxy_model import MultiFilterProxyModel, MultiFilterMode
@@ -72,12 +72,12 @@ class PrepareMergeWindow(QtWidgets.QDialog):
             self._table_model_proxy = MultiFilterProxyModel()
             self._table_model_proxy.setMultiFilterMode(MultiFilterMode.OR)
             self._table_model_proxy.setSourceModel(self._table_model)
-            self._table_model_proxy.setFilterCaseSensitivity(Qt.CaseInsensitive)
-            self._table_model_proxy.setSortCaseSensitivity(Qt.CaseInsensitive)
+            self._table_model_proxy.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+            self._table_model_proxy.setSortCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
 
             self.resize(1280, 720)
             self.setWindowIcon(QtGui.QIcon())
-            self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+            self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
 
             # Vertical Layout
             vertical_layout = QtWidgets.QVBoxLayout()
@@ -157,7 +157,7 @@ class PrepareMergeWindow(QtWidgets.QDialog):
             self.__organizer.onProfileChanged(profile_changed)
         except Exception as ex:
             self.show_error(repr(ex), "Critical error! Please report this on Nexus / GitHub.",
-                            QtWidgets.QMessageBox.Critical)
+                            QtWidgets.QMessageBox.Icon.Critical)
 
     def init(self):
         self.update_mapping(self.__organizer.profile().name())
@@ -175,8 +175,8 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         selected_plugins.setDragEnabled(True)
         selected_plugins.setAcceptDrops(True)
         selected_plugins.setDropIndicatorShown(True)
-        selected_plugins.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
-        selected_plugins.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        selected_plugins.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.ExtendedSelection)
+        selected_plugins.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
 
         return selected_plugins
 
@@ -188,20 +188,20 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         table.setSortingEnabled(True)
         table_header = table.horizontalHeader()
         table_header.setSectionResizeMode(
-            0, QtWidgets.QHeaderView.ResizeToContents
+            0, QtWidgets.QHeaderView.ResizeMode.ResizeToContents
         )  # Priority plugin
         table_header.setSectionResizeMode(
-            2, QtWidgets.QHeaderView.ResizeToContents
+            2, QtWidgets.QHeaderView.ResizeMode.ResizeToContents
         )  # Priority mod
         table_header.setCascadingSectionResizes(True)
         table_header.setStretchLastSection(True)
 
         table.setAlternatingRowColors(True)
         table.setShowGrid(False)
-        table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
 
         table.setDragEnabled(True)
-        table.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+        table.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.ExtendedSelection)
         table.setDropIndicatorShown(False)
         table.setAcceptDrops(True)
 
@@ -235,7 +235,7 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         self._table_model.init_data(self._settings.plugin_mapping)
         self._list_model.init_data([])
 
-        self._table_widget.sortByColumn(0, Qt.AscendingOrder)
+        self._table_widget.sortByColumn(0, Qt.SortOrder.AscendingOrder)
         self._table_widget.resizeColumnToContents(1)
         self._table_widget.resizeColumnToContents(3)
 
@@ -257,7 +257,7 @@ class PrepareMergeWindow(QtWidgets.QDialog):
             self.update_table_view()
         except Exception as ex:
             self.show_error(repr(ex), self.__tr("Critical error! Please report this on Nexus / GitHub."),
-                            QtWidgets.QMessageBox.Critical)
+                            QtWidgets.QMessageBox.Icon.Critical)
 
     def show_activate_plugins(self):
         confirmation_box = QtWidgets.QMessageBox()
@@ -270,10 +270,10 @@ class PrepareMergeWindow(QtWidgets.QDialog):
             )
         )
         confirmation_box.setStandardButtons(
-            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
+            QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No
         )
-        value = confirmation_box.exec_()
-        if value == QtWidgets.QMessageBox.Yes:
+        value = confirmation_box.exec()
+        if value == QtWidgets.QMessageBox.StandardButton.Yes:
             self.activate_plugins()
 
     def show_success(self, active_plugins, active_mods):
@@ -281,13 +281,13 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         info_box.setWindowTitle(self.__tr("Prepare Merge"))
         info_box.setText(self.__tr("Success! The following mods and plugins were activated:"))
         info_box.setInformativeText(f"Mods:\n{str(active_mods)}\n\nPlugins:\n{str(active_plugins)}")
-        info_box.setStandardButtons(QtWidgets.QMessageBox.Ok)
-        info_box.exec_()
+        info_box.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Ok)
+        info_box.exec()
 
     def activate_plugins(self):
         try:
             plugins = [
-                self._list_model.data(self._list_model.index(i, 1), Qt.DisplayRole)
+                self._list_model.data(self._list_model.index(i, 1), Qt.ItemDataRole.DisplayRole)
                 for i in range(self._list_model.rowCount())
             ]
             plugin_to_mod = CaseInsensitiveDict()
@@ -306,16 +306,16 @@ class PrepareMergeWindow(QtWidgets.QDialog):
             )
         except Exception as ex:
             self.show_error(repr(ex), "Critical error! Please report this on Nexus / GitHub.",
-                            QtWidgets.QMessageBox.Critical)
+                            QtWidgets.QMessageBox.Icon.Critical)
 
-    def show_error(self, message, header, icon=QtWidgets.QMessageBox.Warning):
+    def show_error(self, message, header, icon=QtWidgets.QMessageBox.Icon.Warning):
         exception_box = QtWidgets.QMessageBox()
         exception_box.setWindowTitle(self.__tr("Prepare Merge"))
         exception_box.setText(self.__tr(header))
         exception_box.setIcon(icon)
         exception_box.setInformativeText(self.__tr(message))
-        exception_box.setStandardButtons(QtWidgets.QMessageBox.Ok)
-        exception_box.exec_()
+        exception_box.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Ok)
+        exception_box.exec()
 
     def load_settings(self):
         plugin_data = Path(self.__organizer.getPluginDataPath())
@@ -365,4 +365,4 @@ class PrepareMergeWindow(QtWidgets.QDialog):
             self._list_model.insertEntries(self._list_model.rowCount(), valid_entries)
         except Exception as ex:
             self.show_error(repr(ex), "Critical error! Please report this on Nexus / GitHub.",
-                            QtWidgets.QMessageBox.Critical)
+                            QtWidgets.QMessageBox.Icon.Critical)

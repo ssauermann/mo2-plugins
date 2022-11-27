@@ -1,7 +1,7 @@
 # based on https://stackoverflow.com/a/57845903
 import re
 
-from PyQt5.QtCore import Qt, QSortFilterProxyModel
+from PyQt6.QtCore import Qt, QSortFilterProxyModel
 
 
 class MultiFilterMode:
@@ -44,7 +44,7 @@ class MultiFilterProxyModel(QSortFilterProxyModel):
             text = ''
             index = self.sourceModel().index(source_row, key, source_parent)
             if index.isValid():
-                text = self.sourceModel().data(index, Qt.DisplayRole)
+                text = self.sourceModel().data(index, Qt.ItemDataRole.DisplayRole)
                 if text is None:
                     text = ''
             results.append(regex.match(text))
