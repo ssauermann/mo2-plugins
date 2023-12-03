@@ -1,6 +1,7 @@
 from typing import List, Dict, Tuple
 
 import mobase
+
 try:
     from PyQt6.QtCore import qInfo
 except ImportError:
@@ -94,7 +95,12 @@ def activate_plugins_impl(
                     f"Enabling {additional_mods} containing missing masters {plugins_and_masters_to_check}".encode(
                         'ascii', 'replace').decode('ascii')
                 )
-                modlist.setActive(list(additional_mods), active=True)
+                # Doing this in one call like this: modlist.setActive(list(additional_mods), active=True)
+                # results in MO2 showing a "failed to restore load order" error for some mod combinations
+                # Probably a bug on MO2
+                for mod in additional_mods:
+                    modlist.setActive(mod, active=True)
+
                 enabled_mods.update(additional_mods)
 
     except KeyError as e:
@@ -109,7 +115,12 @@ def activate_plugins_impl(
 
     # Place plugins at end of load order
     max_priority = len(pluginlist.pluginNames()) - 1
-    for p in plugins:
-        pluginlist.setPriority(p, max_priority)
+    for idx, p in enumerate(reversed(plugins)):
+        pluginlist.setPriority(p, max_priority - idx)
 
-    return list(enabled_plugins), list(enabled_mods)
+    order_correct = True
+    for idx, p in enumerate(reversed(plugins)):
+        if pluginlist.priority(p) != max_priority - idx:
+            order_correct = False
+
+    return list(enabled_plugins), list(enabled_mods), order_correct
