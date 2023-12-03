@@ -292,6 +292,15 @@ class PrepareMergeWindow(QtWidgets.QDialog):
         info_box.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Ok)
         info_box.exec()
 
+    def show_warning_plugin_order(self):
+        info_box = QtWidgets.QMessageBox()
+        info_box.setWindowTitle(self.__tr("Prepare Merge"))
+        info_box.setText(self.__tr("Warning! Not all plugins could be placed at the end of the load order!"))
+        info_box.setInformativeText("You probably placed a master behind its dependent child!")
+        info_box.setIcon(QtWidgets.QMessageBox.Icon.Warning)
+        info_box.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Ok)
+        info_box.exec()
+
     def activate_plugins(self):
         try:
             plugins = [
@@ -303,7 +312,11 @@ class PrepareMergeWindow(QtWidgets.QDialog):
             for _, p, _, m in self._settings.plugin_mapping:
                 plugin_to_mod[p] = m
 
-            (active_plugins, active_mods) = activate_plugins_impl(self.__organizer, plugins, plugin_to_mod)
+            (active_plugins, active_mods, order_correct) = activate_plugins_impl(self.__organizer, plugins, plugin_to_mod)
+
+            if not order_correct:
+                self.show_warning_plugin_order()
+
             self.show_success(active_plugins, active_mods)
 
         except PrepareMergeException as ex:
