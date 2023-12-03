@@ -109,7 +109,7 @@ def activate_plugins_impl(
 
     # Place plugins at end of load order
     max_priority = len(pluginlist.pluginNames()) - 1
-    for p in plugins:
-        pluginlist.setPriority(p, max_priority)
+    for idx, p in enumerate(reversed(plugins)):
+        pluginlist.setPriority(p, max_priority - idx)
 
     return list(enabled_plugins), list(enabled_mods)
