@@ -112,4 +112,9 @@ def activate_plugins_impl(
     for idx, p in enumerate(reversed(plugins)):
         pluginlist.setPriority(p, max_priority - idx)
 
-    return list(enabled_plugins), list(enabled_mods)
+    order_correct = True
+    for idx, p in enumerate(reversed(plugins)):
+        if pluginlist.priority(p) != max_priority - idx:
+            order_correct = False
+
+    return list(enabled_plugins), list(enabled_mods), order_correct
